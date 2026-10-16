@@ -1,0 +1,10 @@
+import {
+  "huahai29/moonwitness" @witness,
+}
+
+pkgtype(kind: "executable")
+
+options(
+  supported_targets: "js",
+  link: { "js": { "exports": [ "analyze" ], "format": "esm" } },
+)

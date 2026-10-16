@@ -1,0 +1,9 @@
+{
+  "model": "register",
+  "initial": 0,
+  "operations": [
+    {"id":"write-1","client":"writer","start":0,"end":5,"kind":"write","value":1,"output":null},
+    {"id":"read-old","client":"reader-a","start":1,"end":3,"kind":"read","output":0},
+    {"id":"read-new","client":"reader-b","start":6,"end":7,"kind":"read","output":1}
+  ]
+}

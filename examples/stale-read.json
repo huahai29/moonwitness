@@ -1,0 +1,8 @@
+{
+  "model": "kv",
+  "initial": 0,
+  "operations": [
+    {"id":"put-balance","client":"alice","start":0,"end":2,"kind":"put","key":"balance","value":100,"output":null},
+    {"id":"get-balance","client":"bob","start":3,"end":5,"kind":"get","key":"balance","output":0}
+  ]
+}

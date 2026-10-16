@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="MoonWitness: MoonBit 并发历史一致性检查、反例缩减和时间线回放"><title>MoonWitness · 并发真相实验室</title><link rel="stylesheet" href="./style.css"></head>
+<body><main id="app"></main><script type="module">
+import { mount } from './ui.mjs';
+mount({ workerUrl: new URL('./worker.mjs', import.meta.url) });
+</script></body>
+</html>

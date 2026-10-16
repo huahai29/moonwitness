@@ -1,0 +1,83 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "huahai29/moonwitness"
+
+// Values
+pub fn analyze(String, Int, Int) -> String
+
+pub fn check(History, max_nodes? : Int) -> CheckResult
+
+pub fn[S] check_with_model(Array[Operation], Model[S], max_nodes? : Int) -> CheckResult
+
+pub fn parse_history(String) -> Result[History, String]
+
+pub fn reduce(History, max_nodes? : Int, max_checks? : Int) -> Reduction
+
+pub fn replay(History, CheckResult) -> Json
+
+pub fn validate_history(History) -> String?
+
+pub fn validate_operations(Array[Operation]) -> String?
+
+// Errors
+
+// Types and methods
+pub(all) struct CheckResult {
+  verdict : Verdict
+  order : Array[String]
+  explored : Int
+  message : String
+} derive(Eq)
+pub fn CheckResult::equal(Self, Self) -> Bool
+pub fn CheckResult::not_equal(Self, Self) -> Bool
+pub fn CheckResult::to_json(Self) -> Json
+
+pub(all) struct History {
+  model : String
+  initial : Int
+  operations : Array[Operation]
+} derive(Eq, ToJson)
+pub fn History::equal(Self, Self) -> Bool
+pub fn History::not_equal(Self, Self) -> Bool
+pub fn History::to_json(Self) -> Json
+
+pub(all) struct Model[S] {
+  initial : S
+  step : (S, Operation) -> S?
+  fingerprint : (S) -> String
+}
+
+pub(all) struct Operation {
+  id : String
+  client : String
+  start : Int
+  end : Int
+  kind : String
+  key : String
+  value : Int
+  expected : Int
+  output : Json
+} derive(Eq, ToJson)
+pub fn Operation::equal(Self, Self) -> Bool
+pub fn Operation::not_equal(Self, Self) -> Bool
+pub fn Operation::to_json(Self) -> Json
+
+pub(all) struct Reduction {
+  history : History
+  result : CheckResult
+  checks : Int
+  one_minimal : Bool
+}
+
+pub(all) enum Verdict {
+  Linearizable
+  Violation
+  Unknown
+  Invalid
+} derive(Eq)
+pub fn Verdict::equal(Self, Self) -> Bool
+pub fn Verdict::label(Self) -> String
+pub fn Verdict::not_equal(Self, Self) -> Bool
+
+// Type aliases
+
+// Traits

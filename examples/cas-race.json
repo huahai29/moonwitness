@@ -1,0 +1,10 @@
+{
+  "model": "register",
+  "initial": 0,
+  "operations": [
+    {"id":"noise-1","client":"observer","start":0,"end":1,"kind":"read","output":0},
+    {"id":"noise-2","client":"observer","start":2,"end":3,"kind":"read","output":0},
+    {"id":"alice-cas","client":"alice","start":4,"end":10,"kind":"cas","expected":0,"value":1,"output":true},
+    {"id":"bob-cas","client":"bob","start":5,"end":9,"kind":"cas","expected":0,"value":2,"output":true}
+  ]
+}
