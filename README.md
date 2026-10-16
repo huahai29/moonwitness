@@ -126,6 +126,7 @@ moon test --target js
 npm run build
 npm run test:integration
 npm run test:oracle
+npm run test:samples
 npm ci
 npx playwright install chromium
 npm run test:browser
@@ -133,6 +134,8 @@ node scripts/benchmark.mjs
 ```
 
 已验证：27 项 MoonBit 测试在 Wasm、Wasm-GC、JS 三个后端通过；8 项 Node 集成测试；1,500 组固定种子历史与独立全排列穷举结果一致，并复核 139 次缩减；7 项真实浏览器测试。详见 [验证记录](docs/VALIDATION.md)。本地也可设置 `PLAYWRIGHT_CHANNEL=msedge`，用已安装的 Edge 执行浏览器测试。
+
+另有 14 个命令行黑盒验收样例，覆盖正反例、资源耗尽、无效输入、64 条记录缩减，以及实际 CAS 执行采集。运行 `npm run test:samples -- <新的输出目录>` 可保存每个输入和完整结果，详见 [样例实测报告](docs/SAMPLES.md)。输出目录内已有同名文件时不会覆盖。
 
 ## 目录与边界
 

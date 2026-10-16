@@ -14,6 +14,7 @@ Playwright. CI uses Chromium on Linux and reports its own outcome.
 | `moon test --target wasm-gc` | 27 passed |
 | `moon test --target js` | 27 passed |
 | Node integration tests | 8 passed |
+| CLI sample acceptance | 14 passed; see SAMPLES.md |
 | Independent permutation oracle | 1,500 histories, zero mismatches |
 | Oracle classifications | 516 linearizable, 984 violations |
 | Oracle reduction checks | 139 reduced histories independently rechecked |

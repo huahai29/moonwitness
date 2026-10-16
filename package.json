@@ -9,6 +9,7 @@
     "demo": "node cli.mjs check examples/cas-race.json --reduce",
     "test:integration": "node --test tests/*.test.mjs",
     "test:oracle": "node tests/oracle.mjs",
+    "test:samples": "node scripts/test-samples.mjs",
     "serve": "node scripts/serve.mjs",
     "test:browser": "playwright test"
   },
