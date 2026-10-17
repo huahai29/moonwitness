@@ -214,4 +214,4 @@ tests/             独立穷举、集成、浏览器测试
 
 算法背景可参考 [Herlihy 与 Wing 的论文](https://doi.org/10.1145/78969.78972)、[Porcupine](https://github.com/anishathalye/porcupine) 和 [Jepsen 的一致性模型说明](https://jepsen.io/consistency/models)。实现细节见 [算法说明](docs/ALGORITHM.md)。
 
-项目采用 [Apache-2.0](LICENSE)。MoonBit core 及开发依赖的归属见 [第三方说明](THIRD_PARTY_NOTICES.md)。本项目从个人网站仓库独立迁出；原个人网站继续由 [lunli-home](https://github.com/huahai29/lunli-home) 维护。
+项目采用 [Apache-2.0](LICENSE)。MoonBit core 及开发依赖的归属见 [第三方说明](THIRD_PARTY_NOTICES.md)。
