@@ -1,31 +1,20 @@
 # MoonWitness
 
-**两次加一都成功了，为什么最终只加了一？用 MoonBit 找出并发结果中的矛盾。**
+MoonWitness 是用 MoonBit 编写的并发测试工具。它检查调用记录中的返回值和先后关系，帮助你发现丢失更新、CAS 重复成功、写入后仍读到旧值等问题。
 
-[在线实验室](https://huahai29.github.io/moonwitness/) · [样例实测报告](docs/SAMPLES.md) · [自动测试](https://github.com/huahai29/moonwitness/actions/workflows/ci.yml) · [Apache-2.0](LICENSE)
+[打开演示](https://huahai29.github.io/moonwitness/) · [接入指南](docs/QUICKSTART.md) · [样例结果](docs/SAMPLES.md) · [自动测试](https://github.com/huahai29/moonwitness/actions/workflows/ci.yml)
 
-MoonWitness 接收调用开始、结束时间与真实返回值，判断这段记录能否解释为满足实时先后关系的合法顺序执行。适用于整数寄存器、CAS、计数器与独立键值存储的测试，也允许 MoonBit 用户接入自己的纯函数模型。
+目前支持整数计数器、寄存器、CAS 和独立键值存储。你可以在已有测试中记录调用，用断言检查结果，也可以导出报告，逐步查看状态变化。检查通过只说明这次记录符合约定。
 
-它是一个**有资源上限的历史检查器**，不是完整的 Jepsen 平台，也不证明被测系统在所有执行中都正确。
+## 运行示例
 
-- **MoonBit 核心**：带实时先后约束的回溯搜索、失败状态缓存、通用顺序模型。
-- **KV 独立键分解**：按键检查并合并全局顺序见证，所有分区共享搜索预算；保留单体模式供对照。
-- **四类结果**：`linearizable`、`violation`、`unknown`、`invalid`；预算耗尽不会冒充通过或违规。
-- **反例缩减**：每个候选都重新检查；只有确定违规的候选才会保留，可报告单步删除最小性。
-- **证据回放**：顺序见证或合法搜索前缀、状态转移、当前边界上的模型拒绝与前序依赖。
-- **同一引擎，多种入口**：命令行、浏览器 Worker、无网络依赖的单文件 HTML 报告。
-- **真实采集示例**：执行有竞态和修正后的 CAS 实现，采集操作历史，再交给 MoonBit 判断。
-- **SQLite 文件实测**：用真实数据库与两个连接，比较应用层分开读写和原子 SQL 更新，导出原始记录与离线报告。
-
-## 先看懂，再接入
-
-假设计数器从 0 开始，两个人同时加一。正确的原子操作应分别返回 1 和 2；如果都返回 1，就丢失了一次更新。MoonWitness 自动记录调用，检查这些返回值能否同时成立，并把矛盾缩成容易展示的例子。
+假设计数器从 0 开始，两个人同时加一。正确的原子操作应分别返回 1 和 2；如果都返回 1，就丢失了一次更新。MoonWitness 自动记录调用，检查这些返回值能否同时成立，并尝试删去无关操作，方便排查。
 
 适合：测试你实现的计数器、CAS 或独立键值接口是否满足原子操作约定。只想比较最终数值时，普通断言就够了；需要检查并发调用的返回值和先后关系时，可以用本项目。
 
-**零安装体验：**打开 [在线实验室](https://huahai29.github.io/moonwitness/)，点击「看丢失更新」和「看正确实现」对照。默认不需要阅读 JSON；高级选项中可以查看原始记录。页面加载的是已采集记录。
+**在浏览器中查看：**打开 [在线实验室](https://huahai29.github.io/moonwitness/)，点击「检查丢失更新示例」和「检查修正后的示例」对照。默认不需要阅读 JSON；高级选项中可以查看原始记录。页面加载的是已采集记录。
 
-**运行真实调用：**本地安装 Node.js 20+ 后，执行：
+**在本地运行：**安装 Node.js 20+ 后，执行：
 
 ```sh
 git clone https://github.com/huahai29/moonwitness.git
@@ -33,7 +22,7 @@ cd moonwitness
 npm run quickstart
 ```
 
-无需安装 MoonBit 或运行 `npm install`。这个示例真正执行正确与故意有竞态的两个实现，分别得到 `linearizable` 和 `violation`。添加新的输出目录可导出原始记录和可双击的离线报告：
+无需安装 MoonBit 或运行 `npm install`。示例会执行正常实现和有竞态的实现，分别得到 `linearizable` 和 `violation`。添加新的输出目录可导出原始记录和可双击的离线报告：
 
 ```sh
 npm run quickstart -- ./my-first-evidence
@@ -50,7 +39,7 @@ await probe.read();
 probe.assert(); // 检查不通过则抛错，可直接放进现有测试
 ```
 
-`myCounter` 提供 `read()` 和 `add(delta)`；`add` 必须返回加法后的值。使用已知初始状态的隔离测试，并通过 probe 记录所有相关调用。寄存器、KV、错误处理与导出说明见 [五分钟接入指南](docs/QUICKSTART.md)。
+`myCounter` 提供 `read()` 和 `add(delta)`；`add` 必须返回加法后的值。使用已知初始状态的隔离测试，并通过 probe 记录所有相关调用。寄存器、KV、错误处理与导出说明见 [接入指南](docs/QUICKSTART.md)。
 
 本地网页可运行 `npm run serve`。不要直接双击多文件版 `web/index.html`；导出的单文件 HTML 可以直接打开。
 
@@ -70,7 +59,7 @@ node cli.mjs check examples/cas-race.json --reduce
 
 开发时验证的工具链：Moon `0.1.20261012`、moonc `v0.10.15+943464bfa`。CI 使用官方稳定版安装器，并输出实际版本；后续稳定版变更时应重新验证。
 
-## 两分钟理解演示
+## CAS 示例说明
 
 初始值为 0。Alice 和 Bob 并发执行 `CAS(expected=0, value=不同的新值)`，两次调用都返回 `true`。
 
@@ -131,9 +120,9 @@ node adapters/cas-demo.mjs correct correct.json
 node cli.mjs check correct.json
 ```
 
-`adapters/recorder.mjs` 是 Node 宿主示例，使用单进程单调逻辑时钟记录调用区间。`broken` 用显式屏障复现读取与写入之间的竞态；`correct` 在一个同步步骤中执行比较并写入。它们不是数据库故障注入器。记录器拒绝导出仍有 pending 或失败/结果不确定请求的记录。
+`adapters/recorder.mjs` 是 Node 宿主示例，使用单进程单调逻辑时钟记录调用区间。`broken` 用显式屏障复现读取与写入之间的竞态；`correct` 在一个同步步骤中执行比较并写入。记录器拒绝导出仍有 pending 或失败/结果不确定请求的记录。
 
-### SQLite：真实文件、两个连接、修复前后对照
+### SQLite 示例
 
 SQLite 演示需要 **Node.js 24+**；核心检查和普通演示仍支持 Node.js 20+。
 
@@ -143,7 +132,7 @@ node cli.mjs check sqlite-evidence/broken-history.json --reduce
 node cli.mjs check sqlite-evidence/atomic-history.json
 ```
 
-命令使用新建的 SQLite 数据库文件，不覆盖已有数据库。分开 `SELECT` 与 `UPDATE` 的应用实现由屏障控制交错，两次加一均返回 1，最终持久化值为 1，判为违规。改成 `UPDATE ... SET value=value+? RETURNING value` 后返回 1 和 2，最终值为 2，判为通过。输出包含两个数据库、原始记录、判定和可双击的离线 HTML。**这说明应用层读改写需要原子性，不是发现了 SQLite 的缺陷。**
+命令使用新建的 SQLite 数据库文件，不覆盖已有数据库。分开 `SELECT` 与 `UPDATE` 的应用实现由屏障控制交错，两次加一均返回 1，最终持久化值为 1，判为违规。改成 `UPDATE ... SET value=value+? RETURNING value` 后返回 1 和 2，最终值为 2，判为通过。输出包含两个数据库、原始记录、判定和可双击的离线 HTML。两种结果的差别来自应用如何组织读写。
 
 在线页面的「SQLite」按钮加载的是这次实测采集的示例记录，不会在浏览器中启动数据库。可用上面的命令重新采集，详见 [SQLite 实测说明](docs/SQLITE.md)。
 
@@ -176,7 +165,7 @@ node scripts/benchmark.mjs
 
 另有 18 个命令行黑盒验收样例，覆盖正反例、资源耗尽、无效输入、64 条记录缩减、SQLite 采集和 KV 分解对照。运行 `npm run test:samples -- <新的输出目录>` 可保存每个输入和完整结果，详见 [样例实测报告](docs/SAMPLES.md)。输出目录内已有同名文件时不会覆盖。
 
-## 目录与边界
+## 项目目录
 
 ```text
 moon.mod           MoonBit 模块配置，根目录可直接运行 moon 命令
@@ -194,14 +183,19 @@ scripts/           在根目录调用的构建和测试脚本
 tests/             独立穷举、集成、浏览器测试
 ```
 
-在仓库根目录即可直接执行 `moon test`，也可使用 `npm run test:moon` 运行完整核心检查。`web/` 是本项目的新演示界面，不包含个人网站。
+在仓库根目录即可直接执行 `moon test`，也可使用 `npm run test:moon` 运行完整核心检查。`web/` 包含演示页和浏览器端检查器。
 
-搜索最坏情况具有组合爆炸，独立键分解不能解决单键上的所有困难历史；本项目没有声称达到 Porcupine 的性能、支持完整 Jepsen 格式或多键事务验证。反例缩减保持同一初始状态，会改变记录上下文，因此不是唯一根因证明；`one_minimal` 也不是全局最少操作数。后续重点是更强的剪枝、保留上下文的缩减、更多实测适配器和外部检查器差分验证。
+## 使用限制
+
+- 每次最多检查 256 条已完成操作。调用超时、失败或结果未知时，需要先处理记录完整性，不能直接丢弃这些操作。
+- 单键上的复杂并发仍可能耗尽搜索预算，此时返回 `unknown`。KV 分解仅适用于独立键，不支持多键事务。
+- 缩减会按原初始值重新检查剩余操作。排查时请同时查看原始记录；`one_minimal` 只表示再删除任一条操作都不再违规，不保证操作数全局最少，也不直接给出代码中的根因。
+- 外部历史需转换成项目的 JSON 格式，目前不直接接收完整 Jepsen 格式。
 
 运行 `npm run benchmark:partition` 可对照两种实现。本地一个 15 条记录的多键违规样例中，搜索节点从 12,717 降至 17；这不是对所有输入的性能保证。[完整基准与限制](docs/PARTITION.md)。
 
 ## 来源与许可证
 
-本项目核心代码为新实现。线性一致性与历史检查不是新理论；公开参考包括 [Herlihy 与 Wing 的论文](https://doi.org/10.1145/78969.78972)、[Porcupine](https://github.com/anishathalye/porcupine)、[Jepsen 一致性模型说明](https://jepsen.io/consistency/models)。没有将这些项目的代码复制或移植到本仓库，也没有宣称全球首创或保证 MoonBit 历史上不存在同类工作。
+算法背景可参考 [Herlihy 与 Wing 的论文](https://doi.org/10.1145/78969.78972)、[Porcupine](https://github.com/anishathalye/porcupine) 和 [Jepsen 的一致性模型说明](https://jepsen.io/consistency/models)。实现细节见 [算法说明](docs/ALGORITHM.md)。
 
 项目采用 [Apache-2.0](LICENSE)。MoonBit core 及开发依赖的归属见 [第三方说明](THIRD_PARTY_NOTICES.md)。本项目从个人网站仓库独立迁出；原个人网站继续由 [lunli-home](https://github.com/huahai29/lunli-home) 维护。

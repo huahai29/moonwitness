@@ -1,6 +1,6 @@
 # SQLite 实测：应用更新的原子性
 
-这是一份真实 SQLite 文件接入案例。检查算法仍由 MoonBit 实现，Node 负责数据库操作、调用记录和文件导出。
+这个示例用两个 SQLite 连接对同一个计数器加一，对照分开读写与原子更新的结果。Node 负责执行 SQL 和记录调用，MoonBit 负责检查。
 
 ## 复现
 
@@ -33,7 +33,7 @@ node cli.mjs check sqlite-evidence/atomic-history.json
 UPDATE counters SET value=value+? WHERE name='value' RETURNING value;
 ```
 
-两种实现都使用真实磁盘数据库和两个独立连接。记录器采集调用开始、完成顺序和实际返回值，最后再从数据库读取最终值。集成测试重新打开文件核对持久化值，不仅比较报告里的 JSON。
+两种实现都使用真实磁盘数据库和两个独立连接。记录器采集调用开始、完成顺序和实际返回值，最后再从数据库读取最终值。集成测试会重新打开文件，核对持久化值。
 
 ## 输出与演示
 
@@ -47,8 +47,8 @@ UPDATE counters SET value=value+? WHERE name='value' RETURNING value;
 
 ## 适用边界
 
-这是**应用层读改写竞态**的确定性复现，不是 SQLite 自身违反其承诺，也不是在生产系统里发现的新漏洞。调用由单个 Node 进程的异步请求交错产生，SQL API 本身同步执行，不声称测试了多进程故障或分布式时钟。counter 模型只覆盖这一行整数计数，不验证任意 SQL 事务隔离。
+这个示例复现的是应用层分开读写产生的竞态。调用在单个 Node 进程中交错执行，SQL API 同步执行；测试范围不包含多进程故障或分布式时钟。counter 模型只检查这一行整数的原子加法，其他 SQL 事务需要另选模型。
 
 原始三条记录包含最终读值。删除缩减可能保留一个与初始值不符的读取，因而其最小结果不一定保留完整故障上下文。诊断时应结合原始记录、实际数据库值和修正前后对照，不能把缩减结果当成唯一根因。
 
-参考：[Node SQLite API](https://nodejs.org/docs/latest-v24.x/api/sqlite.html)、[SQLite RETURNING](https://www.sqlite.org/lang_returning.html)。这些是 API 与语义来源，不是复制的项目实现。
+参考：[Node SQLite API](https://nodejs.org/docs/latest-v24.x/api/sqlite.html)、[SQLite RETURNING](https://www.sqlite.org/lang_returning.html)。接口用法与返回值语义见上述文档。

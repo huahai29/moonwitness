@@ -22,7 +22,7 @@ test('CAS race reduces to two operations and replays model state', async ({ page
 test('legal overlap displays a complete witness and supports playback', async ({ page }) => {
   await page.goto('/'); await page.locator('[data-example="legal"]').click(); await page.locator('#run').click();
   await expect(page.locator('#badge')).toHaveText('通过');
-  await expect(page.locator('#replay-caption')).toHaveText('完整顺序见证');
+  await expect(page.locator('#replay-caption')).toHaveText('符合约定的操作顺序');
   await page.locator('#play').click();
   await expect(page.locator('#step-label')).toHaveText('3 / 3');
   await expect(page.locator('#replay-state .state-card strong')).toHaveText('1');

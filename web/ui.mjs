@@ -1,25 +1,25 @@
 export function mount({ workerUrl, workerType = 'module', source = '', result = null, offline = false }) {
   const app = document.getElementById('app');
   app.innerHTML = `
-    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.3</small></a><span class="tag">MOONBIT ENGINE · LOCAL FIRST</span></header>
-    <section class="hero"><p class="eyebrow">WHEN TWO UPDATES BECOME ONE</p><h1>两次加一，<br>为什么只多了<span>一次？</span></h1><p class="intro">两个请求同时修改数据，可能都返回成功，却丢掉一次更新。MoonWitness 检查这些返回结果能否同时成立，并留下可以回放的证据。</p><div class="hero-note"><i></i> 本地检查 · 无上传 · 不必先学习一致性术语</div></section>
-    <section class="learn-strip" aria-label="一分钟理解"><article><span>01 / 发生什么</span><h2>从 0 开始，两个人各加 1</h2><p>如果加一是原子操作，两次调用应分别返回 1 和 2。</p></article><article><span>02 / 问题在哪</span><h2>两次都返回 1，最后还是 1</h2><p>单看每次调用没有报错，放在一起就出现矛盾。</p></article><article><span>03 / 怎么验证</span><h2>记录实际返回，交给工具检查</h2><p>先体验样例，再包装自己的 read / add 方法。</p></article></section>
-    <div class="guided-actions"><button id="guided-broken" class="primary">一键看丢失更新 ↗</button><button id="guided-correct">对照修正后的结果</button><a href="#connect">如何接入我的代码 ↓</a></div>
+    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.3</small></a><span class="tag">并发调用检查</span></header>
+    <section class="hero"><p class="eyebrow">计数器示例</p><h1>两次加一，<br>为什么只多了<span>一次？</span></h1><p class="intro">从 0 开始，两次加一应分别返回 1 和 2。如果都返回 1，可以把调用记录交给 MoonWitness 检查，再查看出问题的操作。</p><div class="hero-note"><i></i> 记录在浏览器本地处理，不会上传</div></section>
+    <section class="learn-strip" aria-label="示例说明"><article><span>01 / 发生什么</span><h2>从 0 开始，两个人各加 1</h2><p>如果加一是原子操作，两次调用应分别返回 1 和 2。</p></article><article><span>02 / 问题在哪</span><h2>两次都返回 1，最后还是 1</h2><p>单看每次调用没有报错，放在一起就出现矛盾。</p></article><article><span>03 / 怎么验证</span><h2>记录实际返回，交给工具检查</h2><p>选下面的示例运行，也可以导入自己的调用记录。</p></article></section>
+    <div class="guided-actions"><button id="guided-broken" class="primary">检查丢失更新示例</button><button id="guided-correct">检查修正后的示例</button><a href="#connect">接入自己的接口</a></div>
     <section class="workspace"><div class="editor panel"><div class="panel-head"><h2><span>01</span> 操作历史</h2><label class="file-button">导入 JSON<input id="file" type="file" accept=".json,application/json"></label></div>
     <div class="scenarios" aria-label="示例场景"><button data-example="cas">CAS 双成功</button><button data-example="legal">合法并发</button><button data-example="counter">计数丢失</button><button data-example="stale">过期读取</button><button data-example="noise">64 条记录</button><button data-example="sqliteBroken">SQLite 丢失更新</button><button data-example="sqliteAtomic">SQLite 原子更新</button><button data-example="kv">KV 多键</button></div><p id="capture-note" class="fineprint"></p>
-    <div id="scenario-help" class="scenario-help"></div><details id="advanced"><summary>开发者选项：查看 JSON、调整检查预算</summary><p class="fineprint">技术上检查的是线性一致性：完整调用记录是否存在符合模型与实时先后的顺序。初次体验不需要修改这些数据。</p><label for="source" class="sr-only">操作历史 JSON</label><textarea id="source" spellcheck="false"></textarea>
+    <div id="scenario-help" class="scenario-help"></div><details id="advanced"><summary>查看或编辑 JSON / 调整检查次数</summary><p class="fineprint">可以修改调用记录后重新检查。搜索节点越多，可处理的情况越复杂，等待时间也可能更长。</p><label for="source" class="sr-only">操作历史 JSON</label><textarea id="source" spellcheck="false"></textarea>
     <div class="settings"><label>搜索节点预算<input id="nodes" type="number" min="1" max="1000000" value="100000"></label><label>缩减检查次数<input id="checks" type="number" min="0" max="1000" value="300"></label></div>
     </details><div class="actions"><button id="run" class="primary">检查这组结果 <span>↗</span></button><button id="stop" disabled>停止</button><span id="running" role="status"></span></div>
     <p class="fineprint">接收完整操作，最多 256 条。初始值、返回值和时间均须明确。资源耗尽返回「未判定」。</p></div>
-    <div class="findings panel"><div class="panel-head"><h2><span>02</span> 判定与证据</h2><span id="badge" class="badge">等待检查</span></div><div id="summary" aria-live="polite"><p class="empty">从左侧选择场景，开始寻找并发操作中的矛盾。</p></div><div id="stats" class="stats"></div><div id="explanation"></div><div class="downloads"><button id="download" disabled>导出检查报告 JSON</button><button id="history-download" disabled>导出缩减记录</button></div></div></section>
+    <div class="findings panel"><div class="panel-head"><h2><span>02</span> 检查结果</h2><span id="badge" class="badge">等待检查</span></div><div id="summary" aria-live="polite"><p class="empty">选择一个示例，然后点击「检查这组结果」。</p></div><div id="stats" class="stats"></div><div id="explanation"></div><div class="downloads"><button id="download" disabled>导出检查报告 JSON</button><button id="history-download" disabled>导出缩减记录</button></div></div></section>
     <section class="panel timeline-panel"><div class="panel-head"><h2><span>03</span> 调用时间线</h2><div class="tabs"><button id="original" class="active">原始记录</button><button id="reduced" disabled>缩减记录</button></div></div><p class="fineprint">横条表示调用持续区间；重叠并不代表违规。前一个调用结束 ≤ 后一个调用开始时，必须保持先后顺序。</p><div id="timeline" class="timeline"><p class="empty">检查后展示时间线。</p></div></section>
-    <section class="panel replay-panel"><div class="panel-head"><h2><span>04</span> 顺序见证 / 搜索前缀</h2><span id="replay-caption" class="muted">由 MoonBit 模型生成状态</span></div><div class="replay-controls"><button id="prev" disabled>← 上一步</button><button id="next" disabled>下一步 →</button><button id="play" disabled>自动回放</button><span id="step-label">0 / 0</span></div><div id="replay-state" class="state-grid"></div><div id="frontier"></div></section>
-    <section class="panel connect-panel" id="connect"><div class="panel-head"><h2>接入自己的代码，不用手写历史 JSON</h2></div><p>准备一个有 read() 与 add(delta) 的计数器，声明已知初始值。包装器自动记录编号、调用先后和返回值。</p><pre><code>import { createCounterProbe } from './adapters/instrument.mjs';
+    <section class="panel replay-panel"><div class="panel-head"><h2><span>04</span> 按步骤查看状态</h2><span id="replay-caption" class="muted">检查后可逐步查看</span></div><div class="replay-controls"><button id="prev" disabled>← 上一步</button><button id="next" disabled>下一步 →</button><button id="play" disabled>自动回放</button><span id="step-label">0 / 0</span></div><div id="replay-state" class="state-grid"></div><div id="frontier"></div></section>
+    <section class="panel connect-panel" id="connect"><div class="panel-head"><h2>在自己的测试中使用</h2></div><p>准备一个有 read() 与 add(delta) 的计数器，声明已知初始值。包装器自动记录编号、调用先后和返回值。</p><pre><code>import { createCounterProbe } from './adapters/instrument.mjs';
 
 const probe = createCounterProbe(myCounter, { initial: 0 });
 await Promise.all([probe.add(1), probe.add(1)]);
-probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre><p class="fineprint">add 必须返回加法后的值。先在隔离测试中接入，并确保所有被测读写都经过包装器。超时或未知结果不会被当成成功。</p><a href="https://github.com/huahai29/moonwitness/blob/main/docs/QUICKSTART.md">完整接入示例与常见问题 ↗</a></section>
-    <footer><p>MoonWitness · 以明确的模型验证有限记录，不推断整个系统永远正确。</p><p>通过 / 违规 / 未判定 / 输入无效 · 缩减保持同一初始状态，不保证全局最小或唯一根因。</p>${offline ? '<p>离线报告 · 可编辑输入并重新计算，无需服务器。</p>' : '<a href="https://github.com/huahai29/moonwitness">源代码与算法说明 ↗</a>'}</footer>`;
+probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre><p class="fineprint">add 必须返回加法后的值。先在隔离测试中接入，并确保所有被测读写都经过包装器。超时或未知结果不会被当成成功。</p><a href="https://github.com/huahai29/moonwitness/blob/main/docs/QUICKSTART.md">查看接入指南</a></section>
+    <footer><p>检查通过表示这次记录符合操作约定，不代表其他运行也一定正确。</p><p>缩减记录用于减少排查范围，请结合原始记录定位代码问题。</p>${offline ? '<p>离线报告 · 可编辑输入并重新计算，无需服务器。</p>' : '<a href="https://github.com/huahai29/moonwitness">源代码与算法说明 ↗</a>'}</footer>`;
   const $ = id => document.getElementById(id);
   const operation = (id, client, start, end, kind, output, rest = {}) => ({ id, client, start, end, kind, output, ...rest });
   const examples = {
@@ -44,7 +44,7 @@ probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre>
     noise: '从 64 条记录中删去无关读取，保留能证明矛盾的小段记录。',
     kv: '多个独立键分开检查；某个键上的读取无法解释，整体仍然违规。',
   };
-  $('scenario-help').textContent = source ? '已载入调用记录。工具只根据明确的初始值与操作约定检查，不猜测业务含义。' : descriptions.sqliteBroken;
+  $('scenario-help').textContent = source ? '已载入调用记录。请确认初始值和操作类型，再点击检查。' : descriptions.sqliteBroken;
   if (!source) $('capture-note').textContent = '默认演示使用 SQLite 文件采集记录；浏览器只检查记录，不运行数据库。';
   const labels = { linearizable: '通过', violation: '发现违规', unknown: '未判定', invalid: '输入无效' };
   function text(tag, value, className = '') { const node = document.createElement(tag); node.textContent = value; node.className = className; return node; }
@@ -70,7 +70,7 @@ probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre>
       invalid: '记录格式或操作语义无效，请修正输入。',
     };
     $('summary').replaceChildren(text('h3', messages[current.verdict] || current.message));
-    $('summary').append(text('p', current.message, 'muted'));
+    if (current.verdict === 'invalid') $('summary').append(text('p', current.message, 'muted'));
     const reduced = current.reduction;
     $('stats').replaceChildren();
     for (const [name, value] of [['原始操作', current.history?.operations.length ?? '—'], ['保留操作', reduced?.history.operations.length ?? '—'], ['搜索节点', current.result?.explored ?? '—']]) {
@@ -78,8 +78,8 @@ probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre>
     }
     $('explanation').replaceChildren();
     if (current.strategy === 'independent_keys') $('explanation').append(text('p', `使用独立键分解：${current.partitions} 个分区共享同一搜索预算。通过时合并全局顺序；违规时可切换缩减记录查看局部证据。`, 'fineprint'));
-    if (reduced) $('explanation').append(text('p', reduced.one_minimal ? `已做 ${reduced.checks} 次检查，确认单步删除最小：再删除任何一条操作都不再违规。` : `已做 ${reduced.checks} 次检查；预算内未确认单步删除最小。`, 'callout'));
-    if (current.verdict === 'violation') $('explanation').append(text('p', '下方回放展示某条合法搜索前缀及其边界，不是唯一根因。缩减后的记录会按原初始值重新检查。', 'fineprint'));
+    if (reduced) $('explanation').append(text('p', reduced.one_minimal ? `已做 ${reduced.checks} 次检查，再删除任何一条操作都不再违规。` : `已做 ${reduced.checks} 次检查；检查次数已用完，剩余记录可能还能继续缩减。`, 'callout'));
+    if (current.verdict === 'violation') $('explanation').append(text('p', '可以切换「原始记录」和「缩减记录」排查。下方只展示一条尝试过的执行顺序；缩减后的记录仍使用原初始值。', 'fineprint'));
     $('download').disabled = false; $('history-download').disabled = !reduced; $('reduced').disabled = !reduced;
     renderTimeline(); renderReplay();
   }
@@ -106,7 +106,7 @@ probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre>
     stepIndex = Math.min(stepIndex, steps.length);
     $('step-label').textContent = `${stepIndex} / ${steps.length}`;
     $('prev').disabled = stepIndex === 0; $('next').disabled = stepIndex === steps.length; $('play').disabled = !steps.length;
-    $('replay-caption').textContent = data?.result?.verdict === 'linearizable' ? '完整顺序见证' : '合法前缀；不能据此判定整段通过';
+    $('replay-caption').textContent = data?.result?.verdict === 'linearizable' ? '符合约定的操作顺序' : '这里只显示部分可执行操作，完整结果见上方';
     $('replay-state').replaceChildren();
     const state = stepIndex ? steps[stepIndex - 1].after : (steps[0]?.before || data?.replay?.final_state || []);
     const title = stepIndex ? `步骤 ${stepIndex} · ${steps[stepIndex - 1].id}` : '初始状态';
@@ -114,8 +114,8 @@ probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre>
     for (const [key, value] of state) { const card = text('div', '', 'state-card'); card.append(text('span', key || 'value'), text('strong', String(value))); $('replay-state').append(card); }
     $('frontier').replaceChildren();
     if (stepIndex === steps.length && data?.replay?.frontier.length) {
-      $('frontier').append(text('h3', '当前前缀的未执行操作'));
-      for (const item of data.replay.frontier) $('frontier').append(text('p', `${item.id} · ${item.status === 'model_rejected' ? '返回值不符合此时的模型状态' : item.status === 'waiting_for_predecessor' ? `等待 ${item.waiting_for.join(', ')}` : '在此前缀中可执行；请结合完整判定与缩减记录'}`, item.status === 'model_rejected' ? 'rejection' : 'muted'));
+      $('frontier').append(text('h3', '尚未执行的操作'));
+      for (const item of data.replay.frontier) $('frontier').append(text('p', `${item.id} · ${item.status === 'model_rejected' ? '返回值不符合此时的模型状态' : item.status === 'waiting_for_predecessor' ? `等待 ${item.waiting_for.join(', ')}` : '当前可以执行；请结合上方检查结果判断'}`, item.status === 'model_rejected' ? 'rejection' : 'muted'));
     }
   }
   function cancel(message = '已停止，当前计算未得出结论。') {
@@ -139,7 +139,7 @@ probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre>
   };
   $('stop').onclick = () => cancel();
   $('source').oninput = () => { cancel(''); resetPresentation(); $('capture-note').textContent = ''; $('scenario-help').textContent = '自定义记录：请确认初始值、调用结果和操作约定，再开始检查。'; };
-  document.querySelectorAll('[data-example]').forEach(button => { button.onclick = () => { cancel(''); resetPresentation(); $('source').value = JSON.stringify(examples[button.dataset.example], null, 2); $('scenario-help').textContent = descriptions[button.dataset.example]; $('capture-note').textContent = button.dataset.example.startsWith('sqlite') ? 'SQLite 文件实测记录：浏览器只回放历史，不现场运行数据库。丢失更新来自应用层分开读写，不是 SQLite 本身的缺陷。' : ''; }; });
+  document.querySelectorAll('[data-example]').forEach(button => { button.onclick = () => { cancel(''); resetPresentation(); $('source').value = JSON.stringify(examples[button.dataset.example], null, 2); $('scenario-help').textContent = descriptions[button.dataset.example]; $('capture-note').textContent = button.dataset.example.startsWith('sqlite') ? 'SQLite 文件实测记录：浏览器只回放历史，不现场运行数据库。示例比较分开读写和原子更新两种写法。' : ''; }; });
   $('guided-broken').onclick = () => { document.querySelector('[data-example="sqliteBroken"]').click(); $('run').click(); $('summary').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
   $('guided-correct').onclick = () => { document.querySelector('[data-example="sqliteAtomic"]').click(); $('run').click(); $('summary').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
   $('file').onchange = async event => {
