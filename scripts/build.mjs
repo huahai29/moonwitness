@@ -11,3 +11,7 @@ const engine = banner + (await readFile(new URL('../_build/js/release/build/brid
 await writeFile(new URL('../dist/engine.mjs', import.meta.url), engine);
 await writeFile(new URL('../web/engine.mjs', import.meta.url), engine);
 console.log('Built MoonBit engine -> dist/engine.mjs and web/engine.mjs');
+
+const files = banner + (await readFile(new URL('../_build/js/release/build/nodefiles/nodefiles.js', import.meta.url), 'utf8')).replace(/^\/\/# sourceMappingURL=.*$/gm, '');
+await writeFile(new URL('../adapters/files.mjs', import.meta.url), files);
+console.log('Built MoonBit file I/O -> adapters/files.mjs');

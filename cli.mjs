@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile, writeFile } from 'node:fs/promises';
+import { readText, exportFiles } from './adapters/file-host.mjs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { standaloneReport } from './scripts/report.mjs';
@@ -29,31 +29,14 @@ export async function main(args) {
       !Number.isSafeInteger(options.checks) || options.checks < 0 || options.checks > 1000) {
     throw new Error('max-nodes must be 1..1000000; max-checks must be 0..1000');
   }
-  const destinations = [options.out, options.html].filter(Boolean).map(p => resolve(p));
-  if (new Set(destinations).size !== destinations.length || (args[1] !== '-' && destinations.includes(resolve(args[1])))) {
-    throw new Error('Input, JSON output and HTML output must use different paths');
-  }
-  let source;
-  if (args[1] === '-') {
-    const chunks = []; let length = 0;
-    for await (const chunk of process.stdin) {
-      length += chunk.length;
-      if (length > 8000000) throw new Error('Input too large');
-      chunks.push(chunk);
-    }
-    source = Buffer.concat(chunks).toString('utf8');
-  } else {
-    const { stat } = await import('node:fs/promises');
-    if ((await stat(args[1])).size > 8000000) throw new Error('Input too large');
-    source = await readFile(args[1], 'utf8');
-  }
+  const source = readText(args[1]);
   let analyze;
   try { const engine = await import('./dist/engine.mjs'); analyze = options.baseline ? engine.analyze_baseline : engine.analyze; }
   catch (error) { throw new Error(`Cannot load engine. Run npm run build first. ${error.message}`); }
   const result = JSON.parse(analyze(source.replace(/^\uFEFF/, ''), options.nodes, options.reduce ? options.checks : 0));
   const json = JSON.stringify(result, null, 2) + '\n';
-  if (options.out) await writeFile(options.out, json, { encoding: 'utf8', flag: 'wx' });
-  if (options.html) await writeFile(options.html, await standaloneReport(source, result), { encoding: 'utf8', flag: 'wx' });
+  exportFiles({ input: args[1], output: options.out, json,
+    htmlPath: options.html, html: options.html ? await standaloneReport(source, result) : '' });
   if (options.json) process.stdout.write(json);
   else {
     console.log(`${result.verdict.toUpperCase()}: ${result.message}`);

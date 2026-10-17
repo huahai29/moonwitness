@@ -93,7 +93,7 @@ test('one-call report export works using bundled engine and refuses existing dir
 
 test('unbuilt integration and report export need no dist, node_modules or MoonBit compiler', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'moonwitness-fresh-'));
-  for (const file of ['adapters/instrument.mjs', 'adapters/recorder.mjs', 'web/engine.mjs', 'web/ui.mjs', 'web/style.css', 'scripts/report.mjs', 'examples/quickstart.mjs']) {
+  for (const file of ['adapters/file-host.mjs', 'adapters/files.mjs', 'adapters/instrument.mjs', 'adapters/recorder.mjs', 'web/engine.mjs', 'web/ui.mjs', 'web/style.css', 'scripts/report.mjs', 'examples/quickstart.mjs']) {
     const destination = join(directory, file);
     await mkdir(join(destination, '..'), { recursive: true });
     await copyFile(new URL(`../${file}`, import.meta.url), destination);

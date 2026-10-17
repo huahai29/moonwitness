@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { writeNew } from './file-host.mjs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { Recorder } from './recorder.mjs';
@@ -35,7 +35,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     const mode = args[0] || 'broken';
     if (args.length > 2) throw new Error('Usage: node adapters/cas-demo.mjs [broken|correct] [output.json]');
     const json = JSON.stringify(await capture(mode), null, 2) + '\n';
-    if (args[1]) await writeFile(args[1], json, { flag: 'wx' });
+    if (args[1]) writeNew(args[1], json);
     else process.stdout.write(json);
   } catch (error) { console.error(error.message); process.exitCode = 3; }
 }

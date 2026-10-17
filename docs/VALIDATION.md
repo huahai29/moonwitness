@@ -13,7 +13,7 @@ Playwright. CI uses Chromium on Linux and reports its own outcome.
 | `moon test --target wasm` | 42 passed |
 | `moon test --target wasm-gc` | 42 passed |
 | `moon test --target js` | 42 passed |
-| Node integration tests | 28 passed (Node 24, including real SQLite file tests) |
+| Node integration tests | 36 passed (Node 24, including real SQLite file tests) |
 | CLI sample acceptance | 18 passed; see SAMPLES.md |
 | Independent permutation oracle | 1,500 histories, zero mismatches |
 | Oracle classifications | 516 linearizable, 984 violations |
@@ -118,3 +118,16 @@ Browser scenarios, benchmark histories, timeline ranges/widths and selected/reje
 operation flags are produced by MoonBit. Four more tests cover all eight examples,
 empty/normalized timeline data, benchmark range checks and original search counts.
 The browser and Node hosts still handle DOM, filesystem, promises and timing.
+
+## v0.6 MoonBit file I/O
+
+The JS-target nodefiles package owns bounded read loops, UTF-8 encoding/decoding,
+exclusive write loops, normalized destination checks and report bundle sequencing.
+Only primitive platform calls remain in its Node FFI bindings. It is compiled
+separately from the browser engine and shipped as adapters/files.mjs.
+
+Eight file integration tests cover Chinese/emoji/BOM, byte limits, malformed UTF-8,
+partial reads/writes, files growing beyond fstat size, failed writes/close calls,
+path collisions, preflight of all outputs, exclusive creation and oversized stdin.
+The isolated fresh-checkout test includes both generated runtime modules and
+still runs without a compiler, npm dependencies or a dist directory.

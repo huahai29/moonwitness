@@ -1,7 +1,7 @@
 export function mount({ presentation, scenario, workerUrl, workerType = 'module', source = '', result = null, offline = false }) {
   const app = document.getElementById('app');
   app.innerHTML = `
-    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.5</small></a><span class="tag">并发调用检查</span></header>
+    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.6</small></a><span class="tag">并发调用检查</span></header>
     <section class="hero"><p class="eyebrow">计数器示例</p><h1>两次加一，<br>为什么只多了<span>一次？</span></h1><p class="intro">从 0 开始，两次加一应分别返回 1 和 2。如果都返回 1，可以把调用记录交给 MoonWitness 检查，再查看出问题的操作。</p><div class="hero-note"><i></i> 记录在浏览器本地处理，不会上传</div></section>
     <section class="learn-strip" aria-label="示例说明"><article><span>01 / 发生什么</span><h2>从 0 开始，两个人各加 1</h2><p>如果加一是原子操作，两次调用应分别返回 1 和 2。</p></article><article><span>02 / 问题在哪</span><h2>两次都返回 1，最后还是 1</h2><p>单看每次调用没有报错，放在一起就出现矛盾。</p></article><article><span>03 / 怎么验证</span><h2>记录实际返回，交给工具检查</h2><p>选下面的示例运行，也可以导入自己的调用记录。</p></article></section>
     <div class="guided-actions"><button id="guided-broken" class="primary">检查丢失更新示例</button><button id="guided-correct">检查修正后的示例</button><a href="#connect">接入自己的接口</a></div>

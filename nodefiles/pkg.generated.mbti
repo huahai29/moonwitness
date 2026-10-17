@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "huahai29/moonwitness/nodefiles"
+
+// Values
+pub fn export_bundle(Fs, Paths, String, String, String, String) -> String
+
+pub fn export_files(Fs, Paths, String, String, String, String, String) -> String
+
+pub fn read_text(Fs, String, Int) -> String
+
+pub fn write_new(Fs, String, String) -> String
+
+// Errors
+type FileError
+
+// Types and methods
+type Fs
+
+type Paths
+
+// Type aliases
+
+// Traits

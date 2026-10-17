@@ -1,11 +1,11 @@
-import { readFile } from 'node:fs/promises';
+import { readText } from '../adapters/file-host.mjs';
 const safe = value => JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 export async function standaloneReport(source, result) {
-  const [css, ui, engine] = await Promise.all([
-    readFile(new URL('../web/style.css', import.meta.url), 'utf8'),
-    readFile(new URL('../web/ui.mjs', import.meta.url), 'utf8'),
-    readFile(new URL('../web/engine.mjs', import.meta.url), 'utf8'),
-  ]);
+  const [css, ui, engine] = [
+    readText(new URL('../web/style.css', import.meta.url)),
+    readText(new URL('../web/ui.mjs', import.meta.url)),
+    readText(new URL('../web/engine.mjs', import.meta.url)),
+  ];
   const exportPattern = /export\s*\{([^}]+)\}\s*;?/;
   const exported = engine.match(exportPattern);
   if (!exported) throw new Error('Unexpected MoonBit JS export format; rebuild and verify the report adapter.');

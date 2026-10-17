@@ -34,12 +34,22 @@ moon run validation --target js
 
 | 文件 | 职责 |
 |---|---|
-| `adapters/instrument.mjs` | 包装用户回调、执行异步调用、连接 MoonBit 接口、保存报告 |
+| `adapters/instrument.mjs` | 包装用户回调、执行异步调用，连接检查器和 MoonBit 文件模块 |
 | `adapters/recorder.mjs` | 将 Promise 完成或失败通知 MoonBit 记录器 |
 | `adapters/sqlite-demo.mjs` | 调用 Node SQLite API，执行 SQL 和读取数据库文件 |
-| `cli.mjs` | 处理命令行选项、路径、标准输入输出和文件 |
+| `cli.mjs` | 处理命令行选项和控制台输出，调用 MoonBit 读取输入、保存结果 |
 | `web/ui.mjs` | HTML 模板、DOM 元素、浏览器事件和定时器 |
 | `scripts/` | 构建、启动服务、计时和报告文件封装 |
 | `tests/oracle.mjs` | 启动 MoonBit 校验程序并传递退出码 |
 
 `bridge/main.mbt` 导出宿主调用的函数。`npm run build` 将 MoonBit 编译为 `web/engine.mjs` 和 `dist/engine.mjs`，不需要在 JavaScript 中重复实现检查算法。
+
+## 文件读写
+
+`nodefiles/main.mbt` 是只面向 JS/Node 的 MoonBit 包，独立于浏览器引擎编译。它负责读取循环、8 MB 输入限制、UTF-8 编解码、路径冲突检查、独占创建文件和报告目录内的写入顺序。`adapters/file-host.mjs` 传入 Node 的 `fs` 和 `path` 对象；少量 FFI 绑定调用平台原语。
+
+文件读取会在开始时检查大小，读取过程中也检测增长；标准输入使用同一个上限。写入始终使用 `wx`，已有文件不会被截断。多个输出会先检查全部目标，但多文件导出不是事务：磁盘错误可能留下部分文件，调用会报告失败。文件关闭在异常路径也会尝试执行。
+
+这些是同步文件操作，适合当前命令行和小规模报告。SQLite 的数据库文件创建、测试临时目录、构建和 HTTP 服务仍使用各自的 Node 接口；数据库绑定与异步运行时不在本次迁移范围内。
+
+平台接口依据 [MoonBit FFI 文档](https://docs.moonbitlang.com/en/stable/language/ffi.html)。

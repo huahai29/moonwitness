@@ -1,6 +1,7 @@
 // A real file-backed SQLite integration, not a simulated database. The broken
 // case is an APPLICATION read/modify/write race; it is not a SQLite defect.
-import { open, mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { open, mkdir, mkdtemp } from 'node:fs/promises';
+import { writeNew } from './file-host.mjs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -53,12 +54,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       const captured = await captureSqlite(mode, join(destination, `${mode}.sqlite`));
       const source = JSON.stringify(captured.history, null, 2);
       const result = JSON.parse(analyze(source, 100000, 300));
-      await writeFile(join(destination, `${mode}-history.json`), source, { flag: 'wx' });
-      await writeFile(join(destination, `${mode}-result.json`), JSON.stringify(result, null, 2), { flag: 'wx' });
-      await writeFile(join(destination, `${mode}-replay.html`), await standaloneReport(source, result), { flag: 'wx' });
+      writeNew(join(destination, `${mode}-history.json`), source);
+      writeNew(join(destination, `${mode}-result.json`), JSON.stringify(result, null, 2));
+      writeNew(join(destination, `${mode}-replay.html`), await standaloneReport(source, result));
       cases.push({ mode, sqliteVersion: captured.sqliteVersion, finalValue: captured.finalValue, verdict: result.verdict, operations: captured.history.operations.length });
     }
-    await writeFile(join(destination, 'summary.json'), JSON.stringify({ cases }, null, 2), { flag: 'wx' });
+    writeNew(join(destination, 'summary.json'), JSON.stringify({ cases }, null, 2));
     console.log(JSON.stringify({ destination, cases }, null, 2));
     if (cases[0].verdict !== 'violation' || cases[1].verdict !== 'linearizable') process.exitCode = 1;
   } catch (error) { console.error(error.message); process.exitCode = 3; }

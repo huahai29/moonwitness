@@ -67,15 +67,11 @@ function createProbe(model, target, options, specification) {
     },
     async saveReport(directory, settings = {}) {
       const result = probe.check(settings);
-      const { mkdir, writeFile } = await import('node:fs/promises');
-      const { join, resolve } = await import('node:path');
+      const { exportBundle } = await import('./file-host.mjs');
       const { standaloneReport } = await import('../scripts/report.mjs');
-      // Reserve a new directory to avoid mixing evidence from different runs.
-      const destination = resolve(directory); await mkdir(destination);
       const source = JSON.stringify(result.history, null, 2);
-      await writeFile(join(destination, 'history.json'), source, { flag: 'wx' });
-      await writeFile(join(destination, 'result.json'), JSON.stringify(result, null, 2), { flag: 'wx' });
-      await writeFile(join(destination, 'replay.html'), await standaloneReport(source, result), { flag: 'wx' });
+      const { directory: destination } = exportBundle(directory, source,
+        JSON.stringify(result, null, 2), await standaloneReport(source, result));
       return { directory: destination, result };
     },
   };

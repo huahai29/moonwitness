@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 — 2026-10-17
+
+- Add a separately compiled MoonBit file I/O package for Node hosts.
+- Move bounded input reads, UTF-8 conversion, exclusive writes and report bundle exports into MoonBit.
+- Use the file layer for CLI, SDK, report assets and capture evidence exports.
+- Add file integration coverage for limits, partial I/O, encoding and preservation of existing evidence.
+
 ## 0.5.0 — 2026-10-17
 
 - Move the independent permutation oracle and deterministic generator into MoonBit.
