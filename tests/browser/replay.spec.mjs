@@ -8,7 +8,7 @@ import { standaloneReport } from '../../scripts/report.mjs';
 
 test('CAS race reduces to two operations and replays model state', async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#run').click();
+  await page.goto('/'); await page.locator('[data-example="cas"]').click(); await page.locator('#run').click();
   await expect(page.locator('#badge')).toHaveText('发现违规');
   await expect(page.locator('#stats')).toContainText('2');
   await page.locator('#reduced').click();
@@ -30,6 +30,7 @@ test('legal overlap displays a complete witness and supports playback', async ({
 });
 test('budget exhaustion and invalid JSON never appear as passing', async ({ page }) => {
   await page.goto('/'); await page.locator('[data-example="legal"]').click();
+  await page.locator('#advanced summary').click();
   await page.locator('#nodes').fill('1'); await page.locator('#run').click();
   await expect(page.locator('#badge')).toHaveText('未判定');
   await page.locator('#source').fill('{}'); await page.locator('#run').click();
@@ -37,6 +38,7 @@ test('budget exhaustion and invalid JSON never appear as passing', async ({ page
 });
 test('editing a checked history invalidates stale results', async ({ page }) => {
   await page.goto('/'); await page.locator('#run').click(); await expect(page.locator('#badge')).toHaveText('发现违规');
+  await page.locator('#advanced summary').click();
   await page.locator('#source').fill('{}');
   await expect(page.locator('#badge')).toHaveText('等待检查');
   await expect(page.locator('#download')).toBeDisabled();
@@ -92,4 +94,18 @@ test('multi-key example exposes shared-budget partition strategy and valid reduc
   await expect(page.locator('#frontier')).not.toContainText('搜索预算已耗尽');
   await page.locator('#reduced').click(); await expect(page.locator('.timeline-row')).toHaveCount(1);
   await expect(page.locator('#frontier')).toContainText('返回值不符合');
+});
+
+test('guided first use finds and fixes the example without editing JSON', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#source')).not.toBeVisible();
+  await expect(page.locator('.hero')).toContainText('两次加一');
+  await page.locator('#guided-broken').click();
+  await expect(page.locator('#badge')).toHaveText('发现违规');
+  await expect(page.locator('#scenario-help')).toContainText('随后读取也是 1');
+  await page.locator('#guided-correct').click();
+  await expect(page.locator('#badge')).toHaveText('通过');
+  await expect(page.locator('#scenario-help')).toContainText('随后读取为 2');
+  await expect(page.locator('#source')).not.toBeVisible();
+  await expect(page.locator('#connect')).toContainText('createCounterProbe');
 });

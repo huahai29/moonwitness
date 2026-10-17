@@ -1,6 +1,6 @@
 # MoonWitness
 
-**用 MoonBit 检查并发操作历史，缩减反例，并离线回放证据。**
+**两次加一都成功了，为什么最终只加了一？用 MoonBit 找出并发结果中的矛盾。**
 
 [在线实验室](https://huahai29.github.io/moonwitness/) · [样例实测报告](docs/SAMPLES.md) · [自动测试](https://github.com/huahai29/moonwitness/actions/workflows/ci.yml) · [Apache-2.0](LICENSE)
 
@@ -17,19 +17,42 @@ MoonWitness 接收调用开始、结束时间与真实返回值，判断这段�
 - **真实采集示例**：执行有竞态和修正后的 CAS 实现，采集操作历史，再交给 MoonBit 判断。
 - **SQLite 文件实测**：用真实数据库与两个连接，比较应用层分开读写和原子 SQL 更新，导出原始记录与离线报告。
 
-## 立即体验
+## 先看懂，再接入
 
-直接访问 [在线实验室](https://huahai29.github.io/moonwitness/)，无需安装工具链。仓库也包含可直接运行的浏览器构建 `web/index.html`。
+假设计数器从 0 开始，两个人同时加一。正确的原子操作应分别返回 1 和 2；如果都返回 1，就丢失了一次更新。MoonWitness 自动记录调用，检查这些返回值能否同时成立，并把矛盾缩成容易展示的例子。
 
-本地仅体验界面需要 Node.js 20 或更新版本：
+适合：测试你实现的计数器、CAS 或独立键值接口是否满足原子操作约定。只想比较最终数值时，普通断言就够了；需要检查并发调用的返回值和先后关系时，可以用本项目。
+
+**零安装体验：**打开 [在线实验室](https://huahai29.github.io/moonwitness/)，点击「看丢失更新」和「看正确实现」对照。默认不需要阅读 JSON；高级选项中可以查看原始记录。页面加载的是已采集记录。
+
+**运行真实调用：**本地安装 Node.js 20+ 后，执行：
 
 ```sh
 git clone https://github.com/huahai29/moonwitness.git
 cd moonwitness
-npm run serve
+npm run quickstart
 ```
 
-打开终端显示的本地地址，选择「CAS 双成功」并点击「检查并缩减」。不要直接双击多文件版 `web/index.html`；离线单文件报告可以直接双击打开。
+无需安装 MoonBit 或运行 `npm install`。这个示例真正执行正确与故意有竞态的两个实现，分别得到 `linearizable` 和 `violation`。添加新的输出目录可导出原始记录和可双击的离线报告：
+
+```sh
+npm run quickstart -- ./my-first-evidence
+```
+
+**接入自己的接口：**用回调包住现有实现，通过 probe 发起测试调用；时间、ID 和 JSON 自动生成。
+
+```js
+import { createCounterProbe } from './adapters/instrument.mjs';
+
+const probe = createCounterProbe(myCounter, { initial: 0 });
+await Promise.all([probe.add(1), probe.add(1)]);
+await probe.read();
+probe.assert(); // 检查不通过则抛错，可直接放进现有测试
+```
+
+`myCounter` 提供 `read()` 和 `add(delta)`；`add` 必须返回加法后的值。使用已知初始状态的隔离测试，并通过 probe 记录所有相关调用。寄存器、KV、错误处理与导出说明见 [五分钟接入指南](docs/QUICKSTART.md)。
+
+本地网页可运行 `npm run serve`。不要直接双击多文件版 `web/index.html`；导出的单文件 HTML 可以直接打开。
 
 ## 从 MoonBit 源码构建
 
@@ -149,7 +172,7 @@ npm run test:browser
 node scripts/benchmark.mjs
 ```
 
-已验证：31 项 MoonBit 测试在 Wasm、Wasm-GC、JS 三个后端通过；17 项 Node 集成测试；1,500 组固定种子历史与独立全排列穷举结果一致，并复核 139 次缩减；另有 400 组 KV 历史对照分解与单体检查，验证全局顺序见证；9 项真实浏览器测试。详见 [验证记录](docs/VALIDATION.md)。本地也可设置 `PLAYWRIGHT_CHANNEL=msedge`，用已安装的 Edge 执行浏览器测试。
+已验证：31 项 MoonBit 测试在 Wasm、Wasm-GC、JS 三个后端通过；27 项 Node 集成测试；1,500 组固定种子历史与独立全排列穷举结果一致，并复核 139 次缩减；另有 400 组 KV 历史对照分解与单体检查，验证全局顺序见证；10 项真实浏览器测试。详见 [验证记录](docs/VALIDATION.md)。本地也可设置 `PLAYWRIGHT_CHANNEL=msedge`，用已安装的 Edge 执行浏览器测试。
 
 另有 18 个命令行黑盒验收样例，覆盖正反例、资源耗尽、无效输入、64 条记录缩减、SQLite 采集和 KV 分解对照。运行 `npm run test:samples -- <新的输出目录>` 可保存每个输入和完整结果，详见 [样例实测报告](docs/SAMPLES.md)。输出目录内已有同名文件时不会覆盖。
 
@@ -165,7 +188,7 @@ reduce.mbt         保持违规的删除缩减
 replay.mbt         状态转移与搜索边界证据
 json_adapter.mbt   严格 JSON 输入、宿主统一入口
 bridge/            MoonBit -> JavaScript 导出
-adapters/          实际执行记录采集示例
+adapters/          自动记录接入 API 与实际采集示例
 web/               浏览器界面与编译后引擎
 scripts/           在根目录调用的构建和测试脚本
 tests/             独立穷举、集成、浏览器测试

@@ -4,7 +4,7 @@ export async function standaloneReport(source, result) {
   const [css, ui, engine] = await Promise.all([
     readFile(new URL('../web/style.css', import.meta.url), 'utf8'),
     readFile(new URL('../web/ui.mjs', import.meta.url), 'utf8'),
-    readFile(new URL('../dist/engine.mjs', import.meta.url), 'utf8'),
+    readFile(new URL('../web/engine.mjs', import.meta.url), 'utf8'),
   ]);
   const exportPattern = /export\s*\{([^}]+)\}\s*;?/;
   const exported = engine.match(exportPattern);

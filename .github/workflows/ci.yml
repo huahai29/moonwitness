@@ -20,6 +20,8 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: package-lock.json
+      - name: Fresh checkout quickstart
+        run: node examples/quickstart.mjs
       - name: Install MoonBit stable
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/install-moonbit.sh

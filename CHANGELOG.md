@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-10-17
+
+- Automatic Node probes for counter, register and KV callbacks, assertions and offline exports.
+- Fresh-checkout quickstart without compiler or dependency installation.
+- Guided contrasting examples, plain-language explanations and collapsed advanced input.
+- Onboarding guide, isolated-checkout integration tests and guided browser coverage.
+
 ## 0.2.0 — 2026-10-17
 
 - Independent-key KV decomposition with one shared search budget and complete

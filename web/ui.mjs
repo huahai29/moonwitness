@@ -1,17 +1,24 @@
 export function mount({ workerUrl, workerType = 'module', source = '', result = null, offline = false }) {
   const app = document.getElementById('app');
   app.innerHTML = `
-    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.2</small></a><span class="tag">MOONBIT ENGINE · LOCAL FIRST</span></header>
-    <section class="hero"><p class="eyebrow">CONCURRENCY / EVIDENCE / REPLAY</p><h1>并发之下，<br>让错误<span>留下证据。</span></h1><p class="intro">导入操作历史，检查线性一致性。把复杂记录缩减成可以解释的反例，逐步回放状态变化。</p><div class="hero-note"><i></i> 计算在本地 Worker 中完成 · 无上传 · 无外部 API</div></section>
+    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.3</small></a><span class="tag">MOONBIT ENGINE · LOCAL FIRST</span></header>
+    <section class="hero"><p class="eyebrow">WHEN TWO UPDATES BECOME ONE</p><h1>两次加一，<br>为什么只多了<span>一次？</span></h1><p class="intro">两个请求同时修改数据，可能都返回成功，却丢掉一次更新。MoonWitness 检查这些返回结果能否同时成立，并留下可以回放的证据。</p><div class="hero-note"><i></i> 本地检查 · 无上传 · 不必先学习一致性术语</div></section>
+    <section class="learn-strip" aria-label="一分钟理解"><article><span>01 / 发生什么</span><h2>从 0 开始，两个人各加 1</h2><p>如果加一是原子操作，两次调用应分别返回 1 和 2。</p></article><article><span>02 / 问题在哪</span><h2>两次都返回 1，最后还是 1</h2><p>单看每次调用没有报错，放在一起就出现矛盾。</p></article><article><span>03 / 怎么验证</span><h2>记录实际返回，交给工具检查</h2><p>先体验样例，再包装自己的 read / add 方法。</p></article></section>
+    <div class="guided-actions"><button id="guided-broken" class="primary">一键看丢失更新 ↗</button><button id="guided-correct">对照修正后的结果</button><a href="#connect">如何接入我的代码 ↓</a></div>
     <section class="workspace"><div class="editor panel"><div class="panel-head"><h2><span>01</span> 操作历史</h2><label class="file-button">导入 JSON<input id="file" type="file" accept=".json,application/json"></label></div>
     <div class="scenarios" aria-label="示例场景"><button data-example="cas">CAS 双成功</button><button data-example="legal">合法并发</button><button data-example="counter">计数丢失</button><button data-example="stale">过期读取</button><button data-example="noise">64 条记录</button><button data-example="sqliteBroken">SQLite 丢失更新</button><button data-example="sqliteAtomic">SQLite 原子更新</button><button data-example="kv">KV 多键</button></div><p id="capture-note" class="fineprint"></p>
-    <label for="source" class="sr-only">操作历史 JSON</label><textarea id="source" spellcheck="false"></textarea>
+    <div id="scenario-help" class="scenario-help"></div><details id="advanced"><summary>开发者选项：查看 JSON、调整检查预算</summary><p class="fineprint">技术上检查的是线性一致性：完整调用记录是否存在符合模型与实时先后的顺序。初次体验不需要修改这些数据。</p><label for="source" class="sr-only">操作历史 JSON</label><textarea id="source" spellcheck="false"></textarea>
     <div class="settings"><label>搜索节点预算<input id="nodes" type="number" min="1" max="1000000" value="100000"></label><label>缩减检查次数<input id="checks" type="number" min="0" max="1000" value="300"></label></div>
-    <div class="actions"><button id="run" class="primary">检查并缩减 <span>↗</span></button><button id="stop" disabled>停止</button><span id="running" role="status"></span></div>
+    </details><div class="actions"><button id="run" class="primary">检查这组结果 <span>↗</span></button><button id="stop" disabled>停止</button><span id="running" role="status"></span></div>
     <p class="fineprint">接收完整操作，最多 256 条。初始值、返回值和时间均须明确。资源耗尽返回「未判定」。</p></div>
     <div class="findings panel"><div class="panel-head"><h2><span>02</span> 判定与证据</h2><span id="badge" class="badge">等待检查</span></div><div id="summary" aria-live="polite"><p class="empty">从左侧选择场景，开始寻找并发操作中的矛盾。</p></div><div id="stats" class="stats"></div><div id="explanation"></div><div class="downloads"><button id="download" disabled>导出检查报告 JSON</button><button id="history-download" disabled>导出缩减记录</button></div></div></section>
     <section class="panel timeline-panel"><div class="panel-head"><h2><span>03</span> 调用时间线</h2><div class="tabs"><button id="original" class="active">原始记录</button><button id="reduced" disabled>缩减记录</button></div></div><p class="fineprint">横条表示调用持续区间；重叠并不代表违规。前一个调用结束 ≤ 后一个调用开始时，必须保持先后顺序。</p><div id="timeline" class="timeline"><p class="empty">检查后展示时间线。</p></div></section>
     <section class="panel replay-panel"><div class="panel-head"><h2><span>04</span> 顺序见证 / 搜索前缀</h2><span id="replay-caption" class="muted">由 MoonBit 模型生成状态</span></div><div class="replay-controls"><button id="prev" disabled>← 上一步</button><button id="next" disabled>下一步 →</button><button id="play" disabled>自动回放</button><span id="step-label">0 / 0</span></div><div id="replay-state" class="state-grid"></div><div id="frontier"></div></section>
+    <section class="panel connect-panel" id="connect"><div class="panel-head"><h2>接入自己的代码，不用手写历史 JSON</h2></div><p>准备一个有 read() 与 add(delta) 的计数器，声明已知初始值。包装器自动记录编号、调用先后和返回值。</p><pre><code>import { createCounterProbe } from './adapters/instrument.mjs';
+
+const probe = createCounterProbe(myCounter, { initial: 0 });
+await Promise.all([probe.add(1), probe.add(1)]);
+probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre><p class="fineprint">add 必须返回加法后的值。先在隔离测试中接入，并确保所有被测读写都经过包装器。超时或未知结果不会被当成成功。</p><a href="https://github.com/huahai29/moonwitness/blob/main/docs/QUICKSTART.md">完整接入示例与常见问题 ↗</a></section>
     <footer><p>MoonWitness · 以明确的模型验证有限记录，不推断整个系统永远正确。</p><p>通过 / 违规 / 未判定 / 输入无效 · 缩减保持同一初始状态，不保证全局最小或唯一根因。</p>${offline ? '<p>离线报告 · 可编辑输入并重新计算，无需服务器。</p>' : '<a href="https://github.com/huahai29/moonwitness">源代码与算法说明 ↗</a>'}</footer>`;
   const $ = id => document.getElementById(id);
   const operation = (id, client, start, end, kind, output, rest = {}) => ({ id, client, start, end, kind, output, ...rest });
@@ -26,7 +33,19 @@ export function mount({ workerUrl, workerType = 'module', source = '', result = 
   examples.sqliteAtomic = { model: 'counter', initial: 0, operations: [operation('alice-add', 'alice', 0, 2, 'add', 1, { value: 1 }), operation('bob-add', 'bob', 1, 3, 'add', 2, { value: 1 }), operation('final-read', 'observer', 4, 5, 'read', 2)] };
   examples.kv = { model: 'kv', initial: 0, operations: [...Array.from({ length: 10 }, (_, i) => operation(`write-${i}`, `writer-${i}`, 0, 10, 'put', null, { key: `key-${Math.floor(i / 2)}`, value: i % 2 + 1 })), ...Array.from({ length: 5 }, (_, i) => operation(`read-${i}`, `reader-${i}`, 11, 12, 'get', i === 4 ? 999 : 2, { key: `key-${i}` }))] };
   let current = result, useReduced = false, stepIndex = 0, timer = null, worker = null, started = 0;
-  $('source').value = source || JSON.stringify(examples.cas, null, 2);
+  $('source').value = source || JSON.stringify(examples.sqliteBroken, null, 2);
+  const descriptions = {
+    sqliteBroken: '从 0 开始，两次加一都返回 1，随后读取也是 1。约定是原子加一时，这组结果应被识别为违规。',
+    sqliteAtomic: '同样从 0 开始，修正后的两次加一返回 1、2，随后读取为 2。这组结果应通过。',
+    cas: '两个人都尝试把同一个旧值改成不同的新值，却都声称成功。比较并交换的约定不允许两者同时成功。',
+    legal: '读取与写入时间重叠时，读到旧值可能合理；不是所有并发或旧值都意味着错误。',
+    counter: '两次加一都返回 1，与原子计数器的约定矛盾。',
+    stale: '写入已确认结束，之后开始的读取仍拿到旧值。',
+    noise: '从 64 条记录中删去无关读取，保留能证明矛盾的小段记录。',
+    kv: '多个独立键分开检查；某个键上的读取无法解释，整体仍然违规。',
+  };
+  $('scenario-help').textContent = source ? '已载入调用记录。工具只根据明确的初始值与操作约定检查，不猜测业务含义。' : descriptions.sqliteBroken;
+  if (!source) $('capture-note').textContent = '默认演示使用 SQLite 文件采集记录；浏览器只检查记录，不运行数据库。';
   const labels = { linearizable: '通过', violation: '发现违规', unknown: '未判定', invalid: '输入无效' };
   function text(tag, value, className = '') { const node = document.createElement(tag); node.textContent = value; node.className = className; return node; }
   function stopPlayback() { if (timer) clearInterval(timer); timer = null; $('play').textContent = '自动回放'; }
@@ -45,8 +64,8 @@ export function mount({ workerUrl, workerType = 'module', source = '', result = 
     $('badge').textContent = labels[current.verdict] || current.verdict;
     $('badge').className = `badge ${current.verdict}`;
     const messages = {
-      linearizable: '找到了满足模型与实时先后约束的完整执行顺序。',
-      violation: '穷尽合法排序后，没有任何顺序可以解释全部返回值。',
+      linearizable: '这组结果可以按约定解释，没有发现矛盾。',
+      violation: '这些返回结果互相矛盾，无法满足操作约定。',
       unknown: '预算内尚未完成搜索，不能判定通过或违规。',
       invalid: '记录格式或操作语义无效，请修正输入。',
     };
@@ -119,12 +138,14 @@ export function mount({ workerUrl, workerType = 'module', source = '', result = 
     } catch (error) { cancel(`无法启动计算：${error.message}`); }
   };
   $('stop').onclick = () => cancel();
-  $('source').oninput = () => { cancel(''); resetPresentation(); $('capture-note').textContent = ''; };
-  document.querySelectorAll('[data-example]').forEach(button => { button.onclick = () => { cancel(''); resetPresentation(); $('source').value = JSON.stringify(examples[button.dataset.example], null, 2); $('capture-note').textContent = button.dataset.example.startsWith('sqlite') ? 'SQLite 文件实测记录：浏览器只回放历史，不现场运行数据库。丢失更新来自应用层分开读写，不是 SQLite 本身的缺陷。' : ''; }; });
+  $('source').oninput = () => { cancel(''); resetPresentation(); $('capture-note').textContent = ''; $('scenario-help').textContent = '自定义记录：请确认初始值、调用结果和操作约定，再开始检查。'; };
+  document.querySelectorAll('[data-example]').forEach(button => { button.onclick = () => { cancel(''); resetPresentation(); $('source').value = JSON.stringify(examples[button.dataset.example], null, 2); $('scenario-help').textContent = descriptions[button.dataset.example]; $('capture-note').textContent = button.dataset.example.startsWith('sqlite') ? 'SQLite 文件实测记录：浏览器只回放历史，不现场运行数据库。丢失更新来自应用层分开读写，不是 SQLite 本身的缺陷。' : ''; }; });
+  $('guided-broken').onclick = () => { document.querySelector('[data-example="sqliteBroken"]').click(); $('run').click(); $('summary').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+  $('guided-correct').onclick = () => { document.querySelector('[data-example="sqliteAtomic"]').click(); $('run').click(); $('summary').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
   $('file').onchange = async event => {
     const file = event.target.files[0]; if (!file) return;
     if (file.size > 8000000) { $('running').textContent = '文件过大。'; return; }
-    cancel(''); resetPresentation(); $('capture-note').textContent = ''; $('source').value = (await file.text()).replace(/^\uFEFF/, ''); event.target.value = '';
+    cancel(''); resetPresentation(); $('capture-note').textContent = ''; $('scenario-help').textContent = '已导入自己的记录，请确认初始值和操作约定。'; $('advanced').open = true; $('source').value = (await file.text()).replace(/^\uFEFF/, ''); event.target.value = '';
   };
   $('download').onclick = () => download(current, 'moonwitness-report.json');
   $('history-download').onclick = () => download(current.reduction.history, 'moonwitness-reduced.json');

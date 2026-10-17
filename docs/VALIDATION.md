@@ -13,13 +13,13 @@ Playwright. CI uses Chromium on Linux and reports its own outcome.
 | `moon test --target wasm` | 31 passed |
 | `moon test --target wasm-gc` | 31 passed |
 | `moon test --target js` | 31 passed |
-| Node integration tests | 17 passed (Node 24, including real SQLite file tests) |
+| Node integration tests | 27 passed (Node 24, including real SQLite file tests) |
 | CLI sample acceptance | 18 passed; see SAMPLES.md |
 | Independent permutation oracle | 1,500 histories, zero mismatches |
 | Oracle classifications | 516 linearizable, 984 violations |
 | Oracle reduction checks | 139 reduced histories independently rechecked |
 | Partition differential | 400 histories; monolithic verdicts and merged witnesses checked |
-| Browser E2E | 9 passed, including SQLite capture fixtures and multi-key strategy |
+| Browser E2E | 10 passed, including SQLite capture fixtures and multi-key strategy |
 
 The oracle enumerates complete permutations independently of the production
 search, with no predecessor pruning or production model imports. It checks all
@@ -78,3 +78,19 @@ cross-key real-time merge, empty global prefix on partition failure, and complet
 state replay. See PARTITION.md for before/after benchmarks and SQLITE.md for
 reproduction. The original benchmark table above records the v0.1 sample; the new
 partition comparison is recorded separately.
+
+## v0.3 onboarding validation
+
+Ten integration tests exercise the automatic probes: preserved receiver and return
+values, real asynchronous lost updates, unknown budgets, named-client overlap,
+pending and failed calls, register/KV normalization, input and output validation,
+256-call limits, and exclusive report directories. An isolated checkout test copies
+only the required tracked runtime files, clears PATH, and runs the quickstart plus
+both offline exports without dist, node_modules, or a MoonBit compiler.
+
+The guided browser test runs both contrasting examples while raw JSON remains
+collapsed. Existing offline, injection, mobile and replay checks remain covered.
+
+## v0.3 onboarding validation
+
+Ten automatic-probe tests cover real races, preserved returns and receivers, budgets, pending/failed calls, validation, limits and exclusive exports. An isolated checkout test clears PATH and runs the quickstart with offline exports without dist, node_modules or a compiler. Browser coverage includes guided contrasting examples with raw JSON collapsed.
