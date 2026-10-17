@@ -138,22 +138,21 @@ node scripts/benchmark.mjs
 ## 目录与边界
 
 ```text
-moon/              MoonBit 模块，与 web/ 并列
-  moon.mod         模块配置
-  model.mbt        公共数据模型、输入约束
-  checker.mbt      有预算的搜索与失败状态缓存
-  builtins.mbt     register / kv / counter 顺序语义
-  reduce.mbt       保持违规的删除缩减
-  replay.mbt       状态转移与搜索边界证据
-  json_adapter.mbt 严格 JSON 输入、宿主统一入口
-  bridge/          MoonBit -> JavaScript 导出
+moon.mod           MoonBit 模块配置，根目录可直接运行 moon 命令
+model.mbt          公共数据模型、输入约束
+checker.mbt        有预算的搜索与失败状态缓存
+builtins.mbt       register / kv / counter 顺序语义
+reduce.mbt         保持违规的删除缩减
+replay.mbt         状态转移与搜索边界证据
+json_adapter.mbt   严格 JSON 输入、宿主统一入口
+bridge/            MoonBit -> JavaScript 导出
 adapters/          实际执行记录采集示例
 web/               浏览器界面与编译后引擎
 scripts/           在根目录调用的构建和测试脚本
 tests/             独立穷举、集成、浏览器测试
 ```
 
-直接运行 `moon` 命令时请先进入 `moon/`；根目录的 npm 脚本会自动使用正确目录。`web/` 是本项目的新演示界面，不包含个人网站。
+在仓库根目录即可直接执行 `moon test`，也可使用 `npm run test:moon` 运行完整核心检查。`web/` 是本项目的新演示界面，不包含个人网站。
 
 搜索最坏情况具有组合爆炸；本项目没有声称实现 Porcupine 的性能优化、完整 Jepsen 格式或多键事务验证。反例缩减保持同一初始状态，会改变记录上下文，因此不是唯一根因证明；`one_minimal` 也不是全局最少操作数。后续重点是更强的剪枝、独立键分解、更多实测适配器和外部检查器差分验证。
 
