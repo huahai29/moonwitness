@@ -6,4 +6,7 @@
 /test-results/
 /playwright-report/
 /sample-results/
+/moon/_build/
+/moon/target/
+/moon/.mooncakes/
 *.log

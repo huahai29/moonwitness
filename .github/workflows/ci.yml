@@ -28,10 +28,12 @@ jobs:
       - name: Toolchain version
         run: moon version --all
       - name: Format and strict check
+        working-directory: moon
         run: |
           moon fmt --check
           moon check --deny-warn --target all
       - name: Test MoonBit backends
+        working-directory: moon
         run: |
           moon test --target wasm
           moon test --target wasm-gc

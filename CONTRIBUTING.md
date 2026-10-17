@@ -10,8 +10,10 @@ oracle separately. Never turn an exhausted search into a definite verdict.
 Changes to reduction must preserve model, initial state and recheck every accepted
 candidate. Explain whether a minimality claim is qualified by resource limits.
 
-When changing MoonBit sources, run `npm run build` and include the regenerated
-`web/engine.mjs`. `dist/` and `_build/` are ignored. Never commit browser binaries,
+MoonBit sources live in `moon/`, alongside the `web/` browser host. Run direct
+`moon` commands inside `moon/`, or `npm run test:moon` from the repository root.
+When changing MoonBit sources, run `npm run build` from the root and include the
+regenerated `web/engine.mjs`. `dist/` and `moon/_build/` are ignored. Never commit browser binaries,
 node_modules, private production histories, API keys or local machine paths.
 
 Keep README and algorithm boundaries honest. New adapters must explicitly handle

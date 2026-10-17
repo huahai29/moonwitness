@@ -6,6 +6,7 @@
   "description": "Node and browser hosts for the MoonBit MoonWitness engine",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "test:moon": "node scripts/test-moon.mjs",
     "demo": "node cli.mjs check examples/cas-race.json --reduce",
     "test:integration": "node --test tests/*.test.mjs",
     "test:oracle": "node tests/oracle.mjs",
