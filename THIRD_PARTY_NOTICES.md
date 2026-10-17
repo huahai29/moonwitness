@@ -18,5 +18,5 @@
   references; their source code has not been copied into this project. No claim
   is made to global novelty or to a complete search of all historical MoonBit work.
 
-The MoonWitness directory is Apache-2.0. Existing personal-site files outside
-this directory retain their existing licensing status.
+This standalone MoonWitness repository is Apache-2.0. Personal-site files in
+the separate lunli-home repository retain their existing licensing status.

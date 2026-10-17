@@ -1,0 +1,9 @@
+/_build/
+/target/
+/dist/
+/.mooncakes/
+/node_modules/
+/test-results/
+/playwright-report/
+/sample-results/
+*.log

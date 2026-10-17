@@ -2,6 +2,8 @@
 
 **用 MoonBit 检查并发操作历史，缩减反例，并离线回放证据。**
 
+[在线实验室](https://huahai29.github.io/moonwitness/) · [样例实测报告](docs/SAMPLES.md) · [自动测试](https://github.com/huahai29/moonwitness/actions/workflows/ci.yml) · [Apache-2.0](LICENSE)
+
 MoonWitness 接收调用开始、结束时间与真实返回值，判断这段记录能否解释为满足实时先后关系的合法顺序执行。适用于整数寄存器、CAS、计数器与独立键值存储的测试，也允许 MoonBit 用户接入自己的纯函数模型。
 
 它是一个**有资源上限的历史检查器**，不是完整的 Jepsen 平台，也不证明被测系统在所有执行中都正确。
@@ -15,11 +17,12 @@ MoonWitness 接收调用开始、结束时间与真实返回值，判断这段�
 
 ## 立即体验
 
-仓库包含可直接运行的浏览器构建：[打开实验室](web/index.html)。GitHub 文件页面只显示源码；如仓库已启用从 `main` 根目录发布 GitHub Pages，可访问 `https://huahai29.github.io/lunli-home/moonwitness/web/index.html`。
+直接访问 [在线实验室](https://huahai29.github.io/moonwitness/)，无需安装工具链。仓库也包含可直接运行的浏览器构建 `web/index.html`。
 
 本地仅体验界面需要 Node.js 20 或更新版本：
 
 ```sh
+git clone https://github.com/huahai29/moonwitness.git
 cd moonwitness
 npm run serve
 ```
@@ -158,4 +161,4 @@ tests/             独立穷举、集成、浏览器测试
 
 本项目核心代码为新实现。线性一致性与历史检查不是新理论；公开参考包括 [Herlihy 与 Wing 的论文](https://doi.org/10.1145/78969.78972)、[Porcupine](https://github.com/anishathalye/porcupine)、[Jepsen 一致性模型说明](https://jepsen.io/consistency/models)。没有将这些项目的代码复制或移植到本仓库，也没有宣称全球首创或保证 MoonBit 历史上不存在同类工作。
 
-项目采用 [Apache-2.0](LICENSE)。MoonBit core 及开发依赖的归属见 [第三方说明](THIRD_PARTY_NOTICES.md)。本目录的许可证不改变仓库原有个人主页文件的授权范围。
+项目采用 [Apache-2.0](LICENSE)。MoonBit core 及开发依赖的归属见 [第三方说明](THIRD_PARTY_NOTICES.md)。本项目从个人网站仓库独立迁出；原个人网站继续由 [lunli-home](https://github.com/huahai29/lunli-home) 维护。

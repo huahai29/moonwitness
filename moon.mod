@@ -4,7 +4,7 @@ version = "0.1.0"
 
 readme = "README.md"
 
-repository = "https://github.com/huahai29/lunli-home"
+repository = "https://github.com/huahai29/moonwitness"
 
 license = "Apache-2.0"
 

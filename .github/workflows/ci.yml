@@ -1,0 +1,59 @@
+name: MoonWitness CI
+
+on:
+  push:
+
+  pull_request:
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install MoonBit stable
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/install-moonbit.sh
+          bash /tmp/install-moonbit.sh
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Toolchain version
+        run: moon version --all
+      - name: Format and strict check
+        run: |
+          moon fmt --check
+          moon check --deny-warn --target all
+      - name: Test MoonBit backends
+        run: |
+          moon test --target wasm
+          moon test --target wasm-gc
+          moon test --target js
+      - name: Build engine
+        run: npm run build
+      - name: Integration and independent oracle
+        run: |
+          npm run test:integration
+          npm run test:oracle
+          npm run test:samples -- sample-results
+      - name: Browser tests
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run test:browser
+      - name: Upload screenshots and built browser app
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonwitness-browser
+          path: |
+            test-results/
+            sample-results/
+            web/
