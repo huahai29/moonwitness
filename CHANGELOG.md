@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 — 2026-10-17
+
+- Move capture state, probe operation validation and browser replay view models to MoonBit.
+- Keep Node callbacks, filesystem/SQLite and DOM bindings in thin JavaScript hosts.
+- Mark compiled JavaScript and generated interfaces in GitHub Linguist.
+- Add multi-backend coverage for capture ordering, failures, validation and replay.
+
 ## 0.3.0 — 2026-10-17
 
 - Automatic Node probes for counter, register and KV callbacks, assertions and offline exports.

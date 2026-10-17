@@ -69,6 +69,18 @@ test('malformed outputs are rejected and capture remains uncertain', async () =>
   assert.throws(() => createCounterProbe({ read: () => 0 }), /add callback/);
   assert.throws(() => createCounterProbe({}, { initial: 0.5 }), /integer/);
 });
+
+test('JSON transport cannot coerce custom arguments or nonfinite acknowledgements', async () => {
+  let calls = 0;
+  const counter = createCounterProbe({ read: () => 0, add: x => { calls++; return x; } });
+  await assert.rejects(counter.add({ toJSON: () => 1 }), /primitive/);
+  assert.equal(calls, 0);
+  for (const output of [NaN, Infinity, { toJSON: () => null }]) {
+    const register = createRegisterProbe({ read: () => 0, write: () => output });
+    await assert.rejects(register.write(1), /integer|primitive/);
+    assert.throws(() => register.check(), /uncertain/);
+  }
+});
 test('one-call report export works using bundled engine and refuses existing directories', async () => {
   const directory = join(await mkdtemp(join(tmpdir(), 'moonwitness-probe-')), 'evidence');
   const probe = createCounterProbe({ read: () => 0, add: x => x }); await probe.read();

@@ -1,10 +1,30 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "huahai29/moonwitness/bridge"
 
+import {
+  "huahai29/moonwitness",
+}
+
 // Values
 pub fn analyze(String, Int, Int) -> String
 
 pub fn analyze_baseline(String, Int, Int) -> String
+
+pub fn capture_begin(@moonwitness.Capture, String) -> Int
+
+pub fn capture_fail(@moonwitness.Capture) -> Unit
+
+pub fn capture_finish(@moonwitness.Capture, Int, String) -> Unit
+
+pub fn capture_history(@moonwitness.Capture) -> String
+
+pub fn capture_new(String, Int) -> @moonwitness.Capture
+
+pub fn presentation(String, Bool, Int) -> String
+
+pub fn probe_input(String, String, String) -> String
+
+pub fn probe_output(String, String) -> String
 
 // Errors
 

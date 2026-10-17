@@ -1,5 +1,5 @@
 // Node.js convenience host. Capture and I/O only; MoonBit makes every verdict.
-import { analyze } from '../web/engine.mjs';
+import { analyze, probe_input, probe_output } from '../web/engine.mjs';
 import { Recorder } from './recorder.mjs';
 
 function integer(value, label) {
@@ -30,11 +30,11 @@ function createProbe(model, target, options, specification) {
   function actor(client) {
     if (client !== undefined && (typeof client !== 'string' || !client || client.startsWith('@call:'))) throw new TypeError('client must be a nonempty string outside reserved @call: namespace');
     const operations = {};
-    for (const [name, definition] of Object.entries(specification)) {
+    for (const name of Object.keys(specification)) {
       if (typeof target[name] !== 'function') continue;
       operations[name] = async (...args) => {
         // Validate before invoking the target: rejected SDK calls have no side effects.
-        const description = definition.input(args);
+        const description = checked(probe_input(model, name, encodeArguments(args))).description;
         if (sequence >= 256) throw new RangeError('Capture is limited to 256 calls; create a fresh probe for another isolated run');
         const id = `op-${sequence + 1}`, identity = client ?? `@call:${id}`;
         if (active.has(identity)) throw new Error(`Client ${identity} already has an in-flight call; use separate clients for concurrent calls`);
@@ -43,7 +43,7 @@ function createProbe(model, target, options, specification) {
           let returned;
           await recorder.record({ id, client: identity, kind: name, ...description }, async () => {
             returned = await target[name](...args);
-            return definition.output(returned);
+            return checked(probe_output(name, encodeOutput(returned))).output;
           });
           return returned;
         } finally { active.delete(identity); }
@@ -81,27 +81,33 @@ function createProbe(model, target, options, specification) {
   };
   return probe;
 }
-const none = args => { if (args.length) throw new TypeError('This operation takes no arguments'); return {}; };
-const value = args => { if (args.length !== 1) throw new TypeError('Provide exactly one integer'); return { value: integer(args[0], 'value') }; };
-const cas = args => { if (args.length !== 2) throw new TypeError('Provide expected and next integers'); return { expected: integer(args[0], 'expected'), value: integer(args[1], 'value') }; };
-const key = arg => { if (typeof arg !== 'string') throw new TypeError('key must be a string'); return arg; };
-const number = output => integer(output, 'operation output');
-const ack = output => { if (output !== undefined && output !== null) throw new TypeError('write/put callback must resolve void or null; throw on failure'); return null; };
-const boolean = output => { if (typeof output !== 'boolean') throw new TypeError('CAS callback must return boolean'); return output; };
+function checked(source) {
+  const result = JSON.parse(source);
+  if (result.error) throw new TypeError(result.error);
+  return result;
+}
 
-/** Counter read() and add(delta); add MUST return the value AFTER addition. */
+/** Counter add(delta) returns the value AFTER addition. */
 export function createCounterProbe(target, options = {}) {
-  return createProbe('counter', target, options, { read: { input: none, output: number }, add: { input: value, output: number } });
+  return createProbe('counter', target, options, { read: {}, add: {} });
 }
 /** Integer register; writes resolve void/null, optional CAS returns boolean. */
 export function createRegisterProbe(target, options = {}) {
-  return createProbe('register', target, options, { read: { input: none, output: number }, write: { input: value, output: ack }, cas: { input: cas, output: boolean, optional: true } });
+  return createProbe('register', target, options, { read: {}, write: {}, cas: { optional: true } });
 }
 /** Independent integer keys, each initialized to options.initial (default 0). */
 export function createKvProbe(target, options = {}) {
-  return createProbe('kv', target, options, {
-    get: { input: args => { if (args.length !== 1) throw new TypeError('get requires a key'); return { key: key(args[0]) }; }, output: number },
-    put: { input: args => { if (args.length !== 2) throw new TypeError('put requires key and value'); return { key: key(args[0]), value: integer(args[1], 'value') }; }, output: ack },
-    cas: { input: args => { if (args.length !== 3) throw new TypeError('cas requires key, expected and next'); return { key: key(args[0]), expected: integer(args[1], 'expected'), value: integer(args[2], 'value') }; }, output: boolean, optional: true },
-  });
+  return createProbe('kv', target, options, { get: {}, put: {}, cas: { optional: true } });
+}
+
+// JSON cannot preserve non-finite numbers or custom toJSON conversions. Reject
+// these at the language boundary before MoonBit validates operation semantics.
+function encodeArguments(args) {
+  if (args.some(value => value !== null && !['number', 'string', 'boolean', 'undefined'].includes(typeof value))) throw new TypeError('Operation arguments must be primitive values');
+  return JSON.stringify(args);
+}
+function encodeOutput(value) {
+  if (value !== null && value !== undefined && !['number', 'boolean', 'string'].includes(typeof value)) throw new TypeError('Operation output must be a primitive value');
+  if (typeof value === 'number' && !Number.isFinite(value)) throw new TypeError('Operation output must be a finite integer');
+  return JSON.stringify(value) ?? 'null';
 }

@@ -7,6 +7,20 @@ pkgtype(kind: "executable")
 options(
   supported_targets: "js",
   link: {
-    "js": { "exports": [ "analyze", "analyze_baseline" ], "format": "esm" },
+    "js": {
+      "exports": [
+        "analyze",
+        "analyze_baseline",
+        "capture_new",
+        "capture_begin",
+        "capture_finish",
+        "capture_fail",
+        "capture_history",
+        "presentation",
+        "probe_input",
+        "probe_output",
+      ],
+      "format": "esm",
+    },
   },
 )

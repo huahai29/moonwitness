@@ -10,10 +10,10 @@ Playwright. CI uses Chromium on Linux and reports its own outcome.
 | Check | Observed result |
 |---|---|
 | `moon check --deny-warn --target all` | Passed (including native type checking) |
-| `moon test --target wasm` | 31 passed |
-| `moon test --target wasm-gc` | 31 passed |
-| `moon test --target js` | 31 passed |
-| Node integration tests | 27 passed (Node 24, including real SQLite file tests) |
+| `moon test --target wasm` | 36 passed |
+| `moon test --target wasm-gc` | 36 passed |
+| `moon test --target js` | 36 passed |
+| Node integration tests | 28 passed (Node 24, including real SQLite file tests) |
 | CLI sample acceptance | 18 passed; see SAMPLES.md |
 | Independent permutation oracle | 1,500 histories, zero mismatches |
 | Oracle classifications | 516 linearizable, 984 violations |
@@ -93,4 +93,12 @@ collapsed. Existing offline, injection, mobile and replay checks remain covered.
 
 ## v0.3 onboarding validation
 
-Ten automatic-probe tests cover real races, preserved returns and receivers, budgets, pending/failed calls, validation, limits and exclusive exports. An isolated checkout test clears PATH and runs the quickstart with offline exports without dist, node_modules or a compiler. Browser coverage includes guided contrasting examples with raw JSON collapsed.
+Eleven automatic-probe tests cover real races, preserved returns and receivers, budgets, pending/failed calls, validation, limits and exclusive exports. An isolated checkout test clears PATH and runs the quickstart with offline exports without dist, node_modules or a compiler. Browser coverage includes guided contrasting examples with raw JSON collapsed.
+
+## MoonBit host logic migration
+
+Capture order, logical ticks, pending/failed outcomes, probe input/output semantics,
+and browser replay selection/state are implemented in MoonBit. Five additional
+multi-backend tests cover reverse completion order, pending/failed/malformed
+outcomes, argument shape/ranges, CAS/acknowledgement outputs and replay clamping.
+Existing integration and offline browser tests exercise the generated exports.

@@ -6,11 +6,19 @@ pub fn analyze(String, Int, Int) -> String
 
 pub fn analyze_baseline(String, Int, Int) -> String
 
+pub fn capture_new(String, Int) -> Capture
+
 pub fn check(History, max_nodes? : Int, partition_keys? : Bool) -> CheckResult
 
 pub fn[S] check_with_model(Array[Operation], Model[S], max_nodes? : Int) -> CheckResult
 
 pub fn parse_history(String) -> Result[History, String]
+
+pub fn presentation(String, Bool, Int) -> String
+
+pub fn probe_input(String, String, String) -> String
+
+pub fn probe_output(String, String) -> String
 
 pub fn reduce(History, max_nodes? : Int, max_checks? : Int, partition_keys? : Bool) -> Reduction
 
@@ -23,6 +31,21 @@ pub fn validate_operations(Array[Operation]) -> String?
 // Errors
 
 // Types and methods
+pub struct Capture {
+  model : String
+  initial : Int
+  mut tick : Int
+  mut pending : Int
+  mut failed : Bool
+  descriptions : Array[Json]
+  starts : Array[Int]
+  completed : Array[Json]
+}
+pub fn Capture::capture_begin(Self, String) -> Int
+pub fn Capture::capture_fail(Self) -> Unit
+pub fn Capture::capture_finish(Self, Int, String) -> Unit
+pub fn Capture::capture_history(Self) -> String
+
 pub(all) struct CheckResult {
   verdict : Verdict
   order : Array[String]

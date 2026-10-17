@@ -1,7 +1,7 @@
-export function mount({ workerUrl, workerType = 'module', source = '', result = null, offline = false }) {
+export function mount({ presentation, workerUrl, workerType = 'module', source = '', result = null, offline = false }) {
   const app = document.getElementById('app');
   app.innerHTML = `
-    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.3</small></a><span class="tag">并发调用检查</span></header>
+    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.4</small></a><span class="tag">并发调用检查</span></header>
     <section class="hero"><p class="eyebrow">计数器示例</p><h1>两次加一，<br>为什么只多了<span>一次？</span></h1><p class="intro">从 0 开始，两次加一应分别返回 1 和 2。如果都返回 1，可以把调用记录交给 MoonWitness 检查，再查看出问题的操作。</p><div class="hero-note"><i></i> 记录在浏览器本地处理，不会上传</div></section>
     <section class="learn-strip" aria-label="示例说明"><article><span>01 / 发生什么</span><h2>从 0 开始，两个人各加 1</h2><p>如果加一是原子操作，两次调用应分别返回 1 和 2。</p></article><article><span>02 / 问题在哪</span><h2>两次都返回 1，最后还是 1</h2><p>单看每次调用没有报错，放在一起就出现矛盾。</p></article><article><span>03 / 怎么验证</span><h2>记录实际返回，交给工具检查</h2><p>选下面的示例运行，也可以导入自己的调用记录。</p></article></section>
     <div class="guided-actions"><button id="guided-broken" class="primary">检查丢失更新示例</button><button id="guided-correct">检查修正后的示例</button><a href="#connect">接入自己的接口</a></div>
@@ -46,10 +46,10 @@ probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre>
   };
   $('scenario-help').textContent = source ? '已载入调用记录。请确认初始值和操作类型，再点击检查。' : descriptions.sqliteBroken;
   if (!source) $('capture-note').textContent = '默认演示使用 SQLite 文件采集记录；浏览器只检查记录，不运行数据库。';
-  const labels = { linearizable: '通过', violation: '发现违规', unknown: '未判定', invalid: '输入无效' };
+  const model = () => JSON.parse(presentation(JSON.stringify(current), useReduced, stepIndex));
   function text(tag, value, className = '') { const node = document.createElement(tag); node.textContent = value; node.className = className; return node; }
   function stopPlayback() { if (timer) clearInterval(timer); timer = null; $('play').textContent = '自动回放'; }
-  function view() { return useReduced && current?.reduction ? { ...current.reduction, verdict: current.reduction.result.verdict } : current; }
+  function view() { return current ? model().selected : null; }
   function download(value, name) { const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
   function resetPresentation() {
     stopPlayback(); current = null; useReduced = false; stepIndex = 0;
@@ -61,15 +61,10 @@ probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre>
   }
   function render() {
     if (!current) return;
-    $('badge').textContent = labels[current.verdict] || current.verdict;
+    const display = model();
+    $('badge').textContent = display.label;
     $('badge').className = `badge ${current.verdict}`;
-    const messages = {
-      linearizable: '这组结果可以按约定解释，没有发现矛盾。',
-      violation: '这些返回结果互相矛盾，无法满足操作约定。',
-      unknown: '预算内尚未完成搜索，不能判定通过或违规。',
-      invalid: '记录格式或操作语义无效，请修正输入。',
-    };
-    $('summary').replaceChildren(text('h3', messages[current.verdict] || current.message));
+    $('summary').replaceChildren(text('h3', display.message));
     if (current.verdict === 'invalid') $('summary').append(text('p', current.message, 'muted'));
     const reduced = current.reduction;
     $('stats').replaceChildren();
@@ -102,14 +97,14 @@ probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre>
     }
   }
   function renderReplay() {
-    const data = view(), steps = data?.replay?.steps || [];
-    stepIndex = Math.min(stepIndex, steps.length);
-    $('step-label').textContent = `${stepIndex} / ${steps.length}`;
-    $('prev').disabled = stepIndex === 0; $('next').disabled = stepIndex === steps.length; $('play').disabled = !steps.length;
-    $('replay-caption').textContent = data?.result?.verdict === 'linearizable' ? '符合约定的操作顺序' : '这里只显示部分可执行操作，完整结果见上方';
+    const data = view(), display = model(), steps = data?.replay?.steps || [];
+    stepIndex = display.step;
+    $('step-label').textContent = `${stepIndex} / ${display.total}`;
+    $('prev').disabled = stepIndex === 0; $('next').disabled = stepIndex === display.total; $('play').disabled = !display.total;
+    $('replay-caption').textContent = display.caption;
     $('replay-state').replaceChildren();
-    const state = stepIndex ? steps[stepIndex - 1].after : (steps[0]?.before || data?.replay?.final_state || []);
-    const title = stepIndex ? `步骤 ${stepIndex} · ${steps[stepIndex - 1].id}` : '初始状态';
+    const state = display.state || [];
+    const title = display.title;
     $('replay-state').append(text('h3', title));
     for (const [key, value] of state) { const card = text('div', '', 'state-card'); card.append(text('span', key || 'value'), text('strong', String(value))); $('replay-state').append(card); }
     $('frontier').replaceChildren();
