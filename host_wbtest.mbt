@@ -59,3 +59,78 @@ test "presentation clamps replay positions and selects reduced history" {
   let first = @json.parse(presentation(source, false, -1))
   assert_eq(field(first, "step"), Json(0))
 }
+
+///|
+test "MoonBit scenarios preserve expected results and operation counts" {
+  for
+    entry in [
+      ("cas", 3, "violation"),
+      ("noise", 64, "violation"),
+      ("legal", 3, "linearizable"),
+      ("counter", 2, "violation"),
+      ("stale", 2, "violation"),
+      ("sqliteBroken", 3, "violation"),
+      ("sqliteAtomic", 3, "linearizable"),
+      ("kv", 15, "violation"),
+    ] {
+    let example = @json.parse(scenario(entry.0))
+    let source = field(example, "history").stringify()
+    let history = parse_history(source).unwrap()
+    assert_eq(history.operations.length(), entry.1)
+    assert_eq(check(history).verdict.label(), entry.2)
+  }
+  assert_true(scenario("missing").contains("unknown scenario"))
+}
+
+///|
+test "timeline projection computes positions and widths from logical ticks" {
+  let example = @json.parse(scenario("counter"))
+  let checked = analyze(field(example, "history").stringify(), 100000, 0)
+  let view = @json.parse(presentation(checked, false, 0))
+  let timeline = field(view, "timeline")
+  assert_eq(field(timeline, "minimum"), Json(0))
+  assert_eq(field(timeline, "maximum"), Json(5))
+  guard field(timeline, "rows") is Array(rows) else { fail("missing timeline") }
+  assert_eq(field(rows[0], "left"), Json(0))
+  assert_eq(field(rows[0], "width"), Json(100))
+  assert_eq(field(rows[1], "left"), Json(20))
+  assert_eq(field(rows[1], "width"), Json(60))
+  let empty = @json.parse(presentation("{}", false, 0))
+  assert_eq(array_length(field(field(empty, "timeline"), "rows")), 0)
+}
+
+///|
+test "benchmark key workloads preserve baseline verdicts and boundaries" {
+  assert_true(partition_workload(0, false).contains("error"))
+  assert_true(partition_workload(86, false).contains("error"))
+  for entry in [(3, true), (5, true), (20, false)] {
+    let history = parse_history(partition_workload(entry.0, entry.1)).unwrap()
+    assert_eq(history.operations.length(), entry.0 * 3)
+    assert_eq(
+      check(history).verdict.label(),
+      if entry.1 {
+        "violation"
+      } else {
+        "linearizable"
+      },
+    )
+    assert_eq(
+      check(history).verdict.label(),
+      check(history, partition_keys=false).verdict.label(),
+    )
+  }
+}
+
+///|
+test "standard benchmark workloads retain deterministic search counts" {
+  guard @json.parse(benchmark_workloads()) is Array(entries) else {
+    fail("missing workloads")
+  }
+  let lengths = [128, 64, 10]
+  let nodes = [128, 65, 9226]
+  for i, entry in entries {
+    let history = parse_history(field(entry, "history").stringify()).unwrap()
+    assert_eq(history.operations.length(), lengths[i])
+    assert_eq(check(history).explored, nodes[i])
+  }
+}

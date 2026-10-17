@@ -1,7 +1,7 @@
-export function mount({ presentation, workerUrl, workerType = 'module', source = '', result = null, offline = false }) {
+export function mount({ presentation, scenario, workerUrl, workerType = 'module', source = '', result = null, offline = false }) {
   const app = document.getElementById('app');
   app.innerHTML = `
-    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.4</small></a><span class="tag">并发调用检查</span></header>
+    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.5</small></a><span class="tag">并发调用检查</span></header>
     <section class="hero"><p class="eyebrow">计数器示例</p><h1>两次加一，<br>为什么只多了<span>一次？</span></h1><p class="intro">从 0 开始，两次加一应分别返回 1 和 2。如果都返回 1，可以把调用记录交给 MoonWitness 检查，再查看出问题的操作。</p><div class="hero-note"><i></i> 记录在浏览器本地处理，不会上传</div></section>
     <section class="learn-strip" aria-label="示例说明"><article><span>01 / 发生什么</span><h2>从 0 开始，两个人各加 1</h2><p>如果加一是原子操作，两次调用应分别返回 1 和 2。</p></article><article><span>02 / 问题在哪</span><h2>两次都返回 1，最后还是 1</h2><p>单看每次调用没有报错，放在一起就出现矛盾。</p></article><article><span>03 / 怎么验证</span><h2>记录实际返回，交给工具检查</h2><p>选下面的示例运行，也可以导入自己的调用记录。</p></article></section>
     <div class="guided-actions"><button id="guided-broken" class="primary">检查丢失更新示例</button><button id="guided-correct">检查修正后的示例</button><a href="#connect">接入自己的接口</a></div>
@@ -21,30 +21,10 @@ await Promise.all([probe.add(1), probe.add(1)]);
 probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre><p class="fineprint">add 必须返回加法后的值。先在隔离测试中接入，并确保所有被测读写都经过包装器。超时或未知结果不会被当成成功。</p><a href="https://github.com/huahai29/moonwitness/blob/main/docs/QUICKSTART.md">查看接入指南</a></section>
     <footer><p>检查通过表示这次记录符合操作约定，不代表其他运行也一定正确。</p><p>缩减记录用于减少排查范围，请结合原始记录定位代码问题。</p>${offline ? '<p>离线报告 · 可编辑输入并重新计算，无需服务器。</p>' : '<a href="https://github.com/huahai29/moonwitness">源代码与算法说明 ↗</a>'}</footer>`;
   const $ = id => document.getElementById(id);
-  const operation = (id, client, start, end, kind, output, rest = {}) => ({ id, client, start, end, kind, output, ...rest });
-  const examples = {
-    cas: { model: 'register', initial: 0, operations: [operation('observer', 'observer', 0, 1, 'read', 0), operation('alice-cas', 'alice', 2, 8, 'cas', true, { expected: 0, value: 1 }), operation('bob-cas', 'bob', 3, 7, 'cas', true, { expected: 0, value: 2 })] },
-    legal: { model: 'register', initial: 0, operations: [operation('write', 'writer', 0, 5, 'write', null, { value: 1 }), operation('read-old', 'alice', 1, 3, 'read', 0), operation('read-new', 'bob', 6, 8, 'read', 1)] },
-    counter: { model: 'counter', initial: 0, operations: [operation('alice-add', 'alice', 0, 5, 'add', 1, { value: 1 }), operation('bob-add', 'bob', 1, 4, 'add', 1, { value: 1 })] },
-    stale: { model: 'kv', initial: 0, operations: [operation('put', 'alice', 0, 2, 'put', null, { key: 'balance', value: 100 }), operation('get', 'bob', 3, 5, 'get', 0, { key: 'balance' })] },
-  };
-  examples.noise = { model: 'register', initial: 0, operations: [...Array.from({ length: 62 }, (_, i) => operation(`noise-${i}`, 'observer', i * 2, i * 2 + 1, 'read', 0)), operation('alice-cas', 'alice', 126, 134, 'cas', true, { expected: 0, value: 1 }), operation('bob-cas', 'bob', 127, 133, 'cas', true, { expected: 0, value: 2 })] };
-  examples.sqliteBroken = { model: 'counter', initial: 0, operations: [operation('alice-add', 'alice', 0, 2, 'add', 1, { value: 1 }), operation('bob-add', 'bob', 1, 3, 'add', 1, { value: 1 }), operation('final-read', 'observer', 4, 5, 'read', 1)] };
-  examples.sqliteAtomic = { model: 'counter', initial: 0, operations: [operation('alice-add', 'alice', 0, 2, 'add', 1, { value: 1 }), operation('bob-add', 'bob', 1, 3, 'add', 2, { value: 1 }), operation('final-read', 'observer', 4, 5, 'read', 2)] };
-  examples.kv = { model: 'kv', initial: 0, operations: [...Array.from({ length: 10 }, (_, i) => operation(`write-${i}`, `writer-${i}`, 0, 10, 'put', null, { key: `key-${Math.floor(i / 2)}`, value: i % 2 + 1 })), ...Array.from({ length: 5 }, (_, i) => operation(`read-${i}`, `reader-${i}`, 11, 12, 'get', i === 4 ? 999 : 2, { key: `key-${i}` }))] };
+  const sample = name => JSON.parse(scenario(name));
   let current = result, useReduced = false, stepIndex = 0, timer = null, worker = null, started = 0;
-  $('source').value = source || JSON.stringify(examples.sqliteBroken, null, 2);
-  const descriptions = {
-    sqliteBroken: '从 0 开始，两次加一都返回 1，随后读取也是 1。约定是原子加一时，这组结果应被识别为违规。',
-    sqliteAtomic: '同样从 0 开始，修正后的两次加一返回 1、2，随后读取为 2。这组结果应通过。',
-    cas: '两个人都尝试把同一个旧值改成不同的新值，却都声称成功。比较并交换的约定不允许两者同时成功。',
-    legal: '读取与写入时间重叠时，读到旧值可能合理；不是所有并发或旧值都意味着错误。',
-    counter: '两次加一都返回 1，与原子计数器的约定矛盾。',
-    stale: '写入已确认结束，之后开始的读取仍拿到旧值。',
-    noise: '从 64 条记录中删去无关读取，保留能证明矛盾的小段记录。',
-    kv: '多个独立键分开检查；某个键上的读取无法解释，整体仍然违规。',
-  };
-  $('scenario-help').textContent = source ? '已载入调用记录。请确认初始值和操作类型，再点击检查。' : descriptions.sqliteBroken;
+  $('source').value = source || JSON.stringify(sample('sqliteBroken').history, null, 2);
+  $('scenario-help').textContent = source ? '已载入调用记录。请确认初始值和操作类型，再点击检查。' : sample('sqliteBroken').description;
   if (!source) $('capture-note').textContent = '默认演示使用 SQLite 文件采集记录；浏览器只检查记录，不运行数据库。';
   const model = () => JSON.parse(presentation(JSON.stringify(current), useReduced, stepIndex));
   function text(tag, value, className = '') { const node = document.createElement(tag); node.textContent = value; node.className = className; return node; }
@@ -82,16 +62,14 @@ probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre>
     const data = view(); $('timeline').replaceChildren();
     $('original').classList.toggle('active', !useReduced); $('reduced').classList.toggle('active', useReduced);
     if (!data?.history?.operations.length) { $('timeline').append(text('p', '没有可展示的操作。', 'empty')); return; }
-    const ops = data.history.operations;
-    const minimum = Math.min(...ops.map(op => op.start)), maximum = Math.max(...ops.map(op => op.end)), span = maximum - minimum || 1;
-    const axis = text('div', '', 'axis'); axis.append(text('span', `${minimum} ticks`), text('span', `${maximum} ticks`)); $('timeline').append(axis);
-    const selected = new Set(data.result.order);
-    const rejected = new Set((data.replay?.frontier || []).filter(x => x.status === 'model_rejected').map(x => x.id));
-    for (const op of ops) {
+    const layout = model().timeline;
+    const axis = text('div', '', 'axis'); axis.append(text('span', `${layout.minimum} ticks`), text('span', `${layout.maximum} ticks`)); $('timeline').append(axis);
+    for (const geometry of layout.rows) {
+      const op = geometry.operation;
       const row = text('div', '', 'timeline-row');
       const label = text('div', '', 'op-label'); label.append(text('strong', op.client), text('span', op.id));
-      const track = text('div', '', 'track'); const bar = text('div', `${op.kind}${op.key ? ` ${op.key}` : ''} → ${JSON.stringify(op.output)}`, `bar ${selected.has(op.id) ? 'selected' : ''} ${rejected.has(op.id) ? 'rejected' : ''}`);
-      bar.style.left = `${(op.start - minimum) / span * 100}%`; bar.style.width = `${Math.max(0.8, (op.end - op.start) / span * 100)}%`;
+      const track = text('div', '', 'track'); const bar = text('div', `${op.kind}${op.key ? ` ${op.key}` : ''} → ${JSON.stringify(op.output)}`, `bar ${geometry.selected ? 'selected' : ''} ${geometry.rejected ? 'rejected' : ''}`);
+      bar.style.left = `${geometry.left}%`; bar.style.width = `${geometry.width}%`;
       bar.title = `${op.id}: [${op.start}, ${op.end}) ${op.kind}; value=${op.value ?? '—'}, expected=${op.expected ?? '—'}, output=${JSON.stringify(op.output)}`;
       track.append(bar); row.append(label, track); $('timeline').append(row);
     }
@@ -134,7 +112,11 @@ probe.assert(); // 有矛盾或未判定时抛出带证据的错误</code></pre>
   };
   $('stop').onclick = () => cancel();
   $('source').oninput = () => { cancel(''); resetPresentation(); $('capture-note').textContent = ''; $('scenario-help').textContent = '自定义记录：请确认初始值、调用结果和操作约定，再开始检查。'; };
-  document.querySelectorAll('[data-example]').forEach(button => { button.onclick = () => { cancel(''); resetPresentation(); $('source').value = JSON.stringify(examples[button.dataset.example], null, 2); $('scenario-help').textContent = descriptions[button.dataset.example]; $('capture-note').textContent = button.dataset.example.startsWith('sqlite') ? 'SQLite 文件实测记录：浏览器只回放历史，不现场运行数据库。示例比较分开读写和原子更新两种写法。' : ''; }; });
+  document.querySelectorAll('[data-example]').forEach(button => { button.onclick = () => {
+    cancel(''); resetPresentation(); const selected = sample(button.dataset.example);
+    $('source').value = JSON.stringify(selected.history, null, 2);
+    $('scenario-help').textContent = selected.description; $('capture-note').textContent = selected.capture;
+  }; });
   $('guided-broken').onclick = () => { document.querySelector('[data-example="sqliteBroken"]').click(); $('run').click(); $('summary').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
   $('guided-correct').onclick = () => { document.querySelector('[data-example="sqliteAtomic"]').click(); $('run').click(); $('summary').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
   $('file').onchange = async event => {

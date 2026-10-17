@@ -10,7 +10,7 @@ export async function standaloneReport(source, result) {
   const exported = engine.match(exportPattern);
   if (!exported) throw new Error('Unexpected MoonBit JS export format; rebuild and verify the report adapter.');
   const aliases = exported[1].split(',').map(entry => {
-    const match = entry.trim().match(/^([A-Za-z_$][\w$]*)\s+as\s+(analyze|analyze_baseline|capture_new|capture_begin|capture_finish|capture_fail|capture_history|presentation|probe_input|probe_output)$/);
+    const match = entry.trim().match(/^([A-Za-z_$][\w$]*)\s+as\s+(analyze|analyze_baseline|capture_new|capture_begin|capture_finish|capture_fail|capture_history|presentation|probe_input|probe_output|scenario|partition_workload|benchmark_workloads)$/);
     if (!match) throw new Error('Unexpected MoonBit JS export entry');
     return { internal: match[1], name: match[2] };
   });
@@ -21,6 +21,6 @@ ${workerEngine}
 ${ui.replace('export function mount', 'function mount')}
 const engineSource=${safe(workerEngine)};
 const workerUrl=URL.createObjectURL(new Blob([engineSource+'\\nself.onmessage=e=>{try{self.postMessage({result:JSON.parse(analyze(e.data.source,e.data.nodes,e.data.checks))})}catch(err){self.postMessage({error:String(err)})}}'],{type:'text/javascript'}));
-mount({presentation,workerUrl,workerType:'classic',source:${safe(source)},result:${safe(result)},offline:true});
+mount({presentation,scenario,workerUrl,workerType:'classic',source:${safe(source)},result:${safe(result)},offline:true});
 </script></body></html>`;
 }

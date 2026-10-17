@@ -1,0 +1,5 @@
+import {
+  "huahai29/moonwitness" @witness,
+}
+
+pkgtype(kind: "executable")

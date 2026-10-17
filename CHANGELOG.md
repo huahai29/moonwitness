@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 — 2026-10-17
+
+- Move the independent permutation oracle and deterministic generator into MoonBit.
+- Run the same 1,500-case oracle on Wasm, Wasm-GC and JS.
+- Generate browser scenarios, timeline geometry and benchmark workloads in MoonBit.
+- Retain small Node process/timing hosts and DOM bindings.
+- Document module responsibilities and the path through one check.
+
 ## 0.4.0 — 2026-10-17
 
 - Move capture state, probe operation validation and browser replay view models to MoonBit.

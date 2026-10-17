@@ -8,12 +8,16 @@ MoonWitness 是用 MoonBit 编写的并发测试工具。它检查调用记录�
 
 ## 实现语言
 
-检查、反例缩减、调用记录状态、接口参数与返回值校验，以及网页回放的数据处理都由 MoonBit 实现。JavaScript 负责执行异步回调、访问文件与 SQLite、创建网页元素和响应浏览器事件。
+检查、反例缩减、调用记录状态、接口参数与返回值校验，独立穷举校验、测试与基准数据生成，以及网页回放的数据处理都由 MoonBit 实现。JavaScript 负责执行异步回调、访问文件与 SQLite、创建网页元素和响应浏览器事件。
 
 - `capture.mbt`：记录调用先后、完成结果和不确定状态。
 - `probe.mbt`：校验计数器、寄存器和 KV 接口的参数与返回值。
 - `presentation.mbt`：选择原始或缩减记录，计算回放位置、状态和结果说明。
+- `scenarios.mbt`：生成网页示例和性能测试使用的操作记录。
+- `validation/`：独立枚举完整排列，校验判定、顺序见证和缩减结果。
 - `web/engine.mjs`：由上述源码编译生成，可直接供 Node 和浏览器使用。
+
+模块之间的调用关系见 [实现说明](docs/ARCHITECTURE.md)。独立校验可执行 `moon run validation --target js`，开发测试需要 MoonBit 工具链；使用现成演示不需要。
 
 GitHub 语言统计排除了编译产物和自动生成的接口快照；手写 JavaScript 仍计入统计。
 
@@ -172,7 +176,7 @@ npm run test:browser
 node scripts/benchmark.mjs
 ```
 
-已验证：36 项 MoonBit 测试在 Wasm、Wasm-GC、JS 三个后端通过；28 项 Node 集成测试；1,500 组固定种子历史与独立全排列穷举结果一致，并复核 139 次缩减；另有 400 组 KV 历史对照分解与单体检查，验证全局顺序见证；10 项真实浏览器测试。详见 [验证记录](docs/VALIDATION.md)。本地也可设置 `PLAYWRIGHT_CHANNEL=msedge`，用已安装的 Edge 执行浏览器测试。
+已验证：42 项 MoonBit 测试在 Wasm、Wasm-GC、JS 三个后端通过；28 项 Node 集成测试；1,500 组固定种子历史与独立全排列穷举结果一致，并复核 139 次缩减；另有 400 组 KV 历史对照分解与单体检查，验证全局顺序见证；10 项真实浏览器测试。详见 [验证记录](docs/VALIDATION.md)。本地也可设置 `PLAYWRIGHT_CHANNEL=msedge`，用已安装的 Edge 执行浏览器测试。
 
 另有 18 个命令行黑盒验收样例，覆盖正反例、资源耗尽、无效输入、64 条记录缩减、SQLite 采集和 KV 分解对照。运行 `npm run test:samples -- <新的输出目录>` 可保存每个输入和完整结果，详见 [样例实测报告](docs/SAMPLES.md)。输出目录内已有同名文件时不会覆盖。
 

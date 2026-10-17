@@ -6,6 +6,8 @@ pub fn analyze(String, Int, Int) -> String
 
 pub fn analyze_baseline(String, Int, Int) -> String
 
+pub fn benchmark_workloads() -> String
+
 pub fn capture_new(String, Int) -> Capture
 
 pub fn check(History, max_nodes? : Int, partition_keys? : Bool) -> CheckResult
@@ -13,6 +15,8 @@ pub fn check(History, max_nodes? : Int, partition_keys? : Bool) -> CheckResult
 pub fn[S] check_with_model(Array[Operation], Model[S], max_nodes? : Int) -> CheckResult
 
 pub fn parse_history(String) -> Result[History, String]
+
+pub fn partition_workload(Int, Bool) -> String
 
 pub fn presentation(String, Bool, Int) -> String
 
@@ -23,6 +27,8 @@ pub fn probe_output(String, String) -> String
 pub fn reduce(History, max_nodes? : Int, max_checks? : Int, partition_keys? : Bool) -> Reduction
 
 pub fn replay(History, CheckResult) -> Json
+
+pub fn scenario(String) -> String
 
 pub fn validate_history(History) -> String?
 

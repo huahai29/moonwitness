@@ -10,9 +10,9 @@ Playwright. CI uses Chromium on Linux and reports its own outcome.
 | Check | Observed result |
 |---|---|
 | `moon check --deny-warn --target all` | Passed (including native type checking) |
-| `moon test --target wasm` | 36 passed |
-| `moon test --target wasm-gc` | 36 passed |
-| `moon test --target js` | 36 passed |
+| `moon test --target wasm` | 42 passed |
+| `moon test --target wasm-gc` | 42 passed |
+| `moon test --target js` | 42 passed |
 | Node integration tests | 28 passed (Node 24, including real SQLite file tests) |
 | CLI sample acceptance | 18 passed; see SAMPLES.md |
 | Independent permutation oracle | 1,500 histories, zero mismatches |
@@ -22,7 +22,7 @@ Playwright. CI uses Chromium on Linux and reports its own outcome.
 | Browser E2E | 10 passed, including SQLite capture fixtures and multi-key strategy |
 
 The oracle enumerates complete permutations independently of the production
-search, with no predecessor pruning or production model imports. It checks all
+search, with no predecessor pruning or production model callbacks. It checks all
 real-time pairs and implements the sequential semantics separately. Seed:
 `0x20261017`; history lengths: 1..6; models: register, KV, counter. Every fifth
 case is constructed sequentially to ensure known-good coverage. Every successful
@@ -102,3 +102,19 @@ and browser replay selection/state are implemented in MoonBit. Five additional
 multi-backend tests cover reverse completion order, pending/failed/malformed
 outcomes, argument shape/ranges, CAS/acknowledgement outputs and replay clamping.
 Existing integration and offline browser tests exercise the generated exports.
+
+## v0.5 MoonBit validation and browser computation
+
+The independent oracle now lives in validation/main.mbt. Its uint32 generator
+preserves the original 0x20261017 corpus and exact summary (516/984, 139 reductions).
+It reimplements sequential semantics, enumerates complete permutations, and checks
+production verdicts/witnesses/reductions without using production model callbacks.
+The entire 1,500-case corpus runs on Wasm, Wasm-GC and JS as part of moon test.
+The implementations share a compiler, so this does not replace external-checker
+comparison or detect every common compiler defect. tests/oracle.mjs only launches
+the MoonBit executable; running it requires moon on PATH.
+
+Browser scenarios, benchmark histories, timeline ranges/widths and selected/rejected
+operation flags are produced by MoonBit. Four more tests cover all eight examples,
+empty/normalized timeline data, benchmark range checks and original search counts.
+The browser and Node hosts still handle DOM, filesystem, promises and timing.

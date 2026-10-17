@@ -15,6 +15,74 @@ fn array_length(value : Json) -> Int32 {
 }
 
 ///|
+fn contains_json(value : Json, item : Json) -> Bool {
+  match value {
+    Array(items) => items.contains(item)
+    _ => false
+  }
+}
+
+///|
+fn timeline_model(selected : Json) -> Json {
+  let operations = field(field(selected, "history"), "operations")
+  guard operations is Array(ops) && ops.length() > 0 else {
+    return { "rows": [] }
+  }
+  let mut minimum = 2147483647
+  let mut maximum = 0
+  for op in ops {
+    let start = number(field(op, "start")).unwrap_or(0)
+    let end = number(field(op, "end")).unwrap_or(0)
+    if start < minimum {
+      minimum = start
+    }
+    if end > maximum {
+      maximum = end
+    }
+  }
+  let span = if maximum > minimum {
+    (maximum - minimum).to_double()
+  } else {
+    1.0
+  }
+  let order = field(field(selected, "result"), "order")
+  let frontier = field(field(selected, "replay"), "frontier")
+  let rows : Array[Json] = []
+  for op in ops {
+    let start = number(field(op, "start")).unwrap_or(0)
+    let end = number(field(op, "end")).unwrap_or(0)
+    let width = (end - start).to_double() / span * 100.0
+    let id = field(op, "id")
+    let rejected = match frontier {
+      Array(items) =>
+        items.any(fn(item) {
+          field(item, "id") == id &&
+          field(item, "status") == Json("model_rejected")
+        })
+      _ => false
+    }
+    let row : Json = {
+      "operation": op,
+      "left": (start - minimum).to_double() / span * 100.0,
+      "width": if width < 0.8 {
+        0.8
+      } else {
+        width
+      },
+      "selected": contains_json(order, id),
+      "rejected": rejected,
+    }
+    rows.push(row)
+  }
+  let result : Json = {
+    "minimum": minimum,
+    "maximum": maximum,
+    "rows": Json(rows),
+  }
+  result
+}
+
+///|
 /// Browser view model. DOM creation stays in the host; result selection,
 /// navigation bounds, labels and replay semantics stay in MoonBit.
 pub fn presentation(
@@ -86,5 +154,6 @@ pub fn presentation(
     "state": state,
     "title": Json(title),
     "caption": Json(caption),
+    "timeline": timeline_model(selected),
   }).stringify()
 }

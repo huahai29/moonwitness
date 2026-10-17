@@ -60,3 +60,18 @@ pub fn probe_input(model : String, kind : String, source : String) -> String {
 pub fn probe_output(kind : String, source : String) -> String {
   @witness.probe_output(kind, source)
 }
+
+///|
+pub fn scenario(name : String) -> String {
+  @witness.scenario(name)
+}
+
+///|
+pub fn partition_workload(keys : Int32, invalid : Bool) -> String {
+  @witness.partition_workload(keys, invalid)
+}
+
+///|
+pub fn benchmark_workloads() -> String {
+  @witness.benchmark_workloads()
+}
