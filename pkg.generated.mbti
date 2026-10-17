@@ -4,13 +4,15 @@ package "huahai29/moonwitness"
 // Values
 pub fn analyze(String, Int, Int) -> String
 
-pub fn check(History, max_nodes? : Int) -> CheckResult
+pub fn analyze_baseline(String, Int, Int) -> String
+
+pub fn check(History, max_nodes? : Int, partition_keys? : Bool) -> CheckResult
 
 pub fn[S] check_with_model(Array[Operation], Model[S], max_nodes? : Int) -> CheckResult
 
 pub fn parse_history(String) -> Result[History, String]
 
-pub fn reduce(History, max_nodes? : Int, max_checks? : Int) -> Reduction
+pub fn reduce(History, max_nodes? : Int, max_checks? : Int, partition_keys? : Bool) -> Reduction
 
 pub fn replay(History, CheckResult) -> Json
 

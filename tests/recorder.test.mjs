@@ -21,3 +21,12 @@ test('recorder refuses to silently discard failed or pending calls', async () =>
   finish(0); await running;
   assert.equal(pending.history().operations.length, 1);
 });
+
+test('recorder snapshots the operation description at invocation', async () => {
+  const recorder = new Recorder();
+  const description = { id: 'read', client: 'alice', kind: 'read' };
+  const request = recorder.record(description, async () => 0);
+  description.id = 'changed-after-invocation';
+  await request;
+  assert.equal(recorder.history().operations[0].id, 'read');
+});

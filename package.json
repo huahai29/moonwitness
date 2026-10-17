@@ -1,6 +1,6 @@
 {
   "name": "moonwitness",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Node and browser hosts for the MoonBit MoonWitness engine",
@@ -12,7 +12,8 @@
     "test:oracle": "node tests/oracle.mjs",
     "test:samples": "node scripts/test-samples.mjs",
     "serve": "node scripts/serve.mjs",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "benchmark:partition": "node scripts/partition-benchmark.mjs"
   },
   "engines": {
     "node": ">=20"

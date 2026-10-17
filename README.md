@@ -9,11 +9,13 @@ MoonWitness 接收调用开始、结束时间与真实返回值，判断这段�
 它是一个**有资源上限的历史检查器**，不是完整的 Jepsen 平台，也不证明被测系统在所有执行中都正确。
 
 - **MoonBit 核心**：带实时先后约束的回溯搜索、失败状态缓存、通用顺序模型。
+- **KV 独立键分解**：按键检查并合并全局顺序见证，所有分区共享搜索预算；保留单体模式供对照。
 - **四类结果**：`linearizable`、`violation`、`unknown`、`invalid`；预算耗尽不会冒充通过或违规。
 - **反例缩减**：每个候选都重新检查；只有确定违规的候选才会保留，可报告单步删除最小性。
 - **证据回放**：顺序见证或合法搜索前缀、状态转移、当前边界上的模型拒绝与前序依赖。
 - **同一引擎，多种入口**：命令行、浏览器 Worker、无网络依赖的单文件 HTML 报告。
 - **真实采集示例**：执行有竞态和修正后的 CAS 实现，采集操作历史，再交给 MoonBit 判断。
+- **SQLite 文件实测**：用真实数据库与两个连接，比较应用层分开读写和原子 SQL 更新，导出原始记录与离线报告。
 
 ## 立即体验
 
@@ -93,6 +95,8 @@ node cli.mjs check examples/legal-overlap.json --max-nodes 1
 
 `--max-nodes` 为每次检查的搜索节点上限，范围 1..1,000,000；`--max-checks` 为缩减检查总次数上限，范围 0..1000，包含缩减器的基线检查。默认节点预算 100,000，启用 `--reduce` 后默认最多 1000 次检查。`--max-checks 0` 跳过缩减。没有 `--reduce` 时只执行原历史检查。
 
+KV 默认按独立键分解，**总预算不会乘以键数**。`--no-partition` 使用保留的单体检查器，便于在相同输入和预算下对照。JSON 报告中的 `strategy`、`partitions` 和 `explored` 说明实际采用的策略和搜索节点数。优化不适用于多键事务或任意自定义模型。
+
 导出不会覆盖已有文件，也不允许输出路径与输入相同。HTML 包含引擎、记录和界面，可在断网状态下打开、编辑和重新检查。报告中可能包含业务数据，应按原始记录的敏感程度保存。
 
 ## 从实际执行采集历史
@@ -105,6 +109,20 @@ node cli.mjs check correct.json
 ```
 
 `adapters/recorder.mjs` 是 Node 宿主示例，使用单进程单调逻辑时钟记录调用区间。`broken` 用显式屏障复现读取与写入之间的竞态；`correct` 在一个同步步骤中执行比较并写入。它们不是数据库故障注入器。记录器拒绝导出仍有 pending 或失败/结果不确定请求的记录。
+
+### SQLite：真实文件、两个连接、修复前后对照
+
+SQLite 演示需要 **Node.js 24+**；核心检查和普通演示仍支持 Node.js 20+。
+
+```sh
+node adapters/sqlite-demo.mjs sqlite-evidence
+node cli.mjs check sqlite-evidence/broken-history.json --reduce
+node cli.mjs check sqlite-evidence/atomic-history.json
+```
+
+命令使用新建的 SQLite 数据库文件，不覆盖已有数据库。分开 `SELECT` 与 `UPDATE` 的应用实现由屏障控制交错，两次加一均返回 1，最终持久化值为 1，判为违规。改成 `UPDATE ... SET value=value+? RETURNING value` 后返回 1 和 2，最终值为 2，判为通过。输出包含两个数据库、原始记录、判定和可双击的离线 HTML。**这说明应用层读改写需要原子性，不是发现了 SQLite 的缺陷。**
+
+在线页面的「SQLite」按钮加载的是这次实测采集的示例记录，不会在浏览器中启动数据库。可用上面的命令重新采集，详见 [SQLite 实测说明](docs/SQLITE.md)。
 
 ## MoonBit API
 
@@ -131,9 +149,9 @@ npm run test:browser
 node scripts/benchmark.mjs
 ```
 
-已验证：27 项 MoonBit 测试在 Wasm、Wasm-GC、JS 三个后端通过；8 项 Node 集成测试；1,500 组固定种子历史与独立全排列穷举结果一致，并复核 139 次缩减；7 项真实浏览器测试。详见 [验证记录](docs/VALIDATION.md)。本地也可设置 `PLAYWRIGHT_CHANNEL=msedge`，用已安装的 Edge 执行浏览器测试。
+已验证：31 项 MoonBit 测试在 Wasm、Wasm-GC、JS 三个后端通过；17 项 Node 集成测试；1,500 组固定种子历史与独立全排列穷举结果一致，并复核 139 次缩减；另有 400 组 KV 历史对照分解与单体检查，验证全局顺序见证；9 项真实浏览器测试。详见 [验证记录](docs/VALIDATION.md)。本地也可设置 `PLAYWRIGHT_CHANNEL=msedge`，用已安装的 Edge 执行浏览器测试。
 
-另有 14 个命令行黑盒验收样例，覆盖正反例、资源耗尽、无效输入、64 条记录缩减，以及实际 CAS 执行采集。运行 `npm run test:samples -- <新的输出目录>` 可保存每个输入和完整结果，详见 [样例实测报告](docs/SAMPLES.md)。输出目录内已有同名文件时不会覆盖。
+另有 18 个命令行黑盒验收样例，覆盖正反例、资源耗尽、无效输入、64 条记录缩减、SQLite 采集和 KV 分解对照。运行 `npm run test:samples -- <新的输出目录>` 可保存每个输入和完整结果，详见 [样例实测报告](docs/SAMPLES.md)。输出目录内已有同名文件时不会覆盖。
 
 ## 目录与边界
 
@@ -141,6 +159,7 @@ node scripts/benchmark.mjs
 moon.mod           MoonBit 模块配置，根目录可直接运行 moon 命令
 model.mbt          公共数据模型、输入约束
 checker.mbt        有预算的搜索与失败状态缓存
+partition.mbt      独立键分解与全局顺序见证合并
 builtins.mbt       register / kv / counter 顺序语义
 reduce.mbt         保持违规的删除缩减
 replay.mbt         状态转移与搜索边界证据
@@ -154,7 +173,9 @@ tests/             独立穷举、集成、浏览器测试
 
 在仓库根目录即可直接执行 `moon test`，也可使用 `npm run test:moon` 运行完整核心检查。`web/` 是本项目的新演示界面，不包含个人网站。
 
-搜索最坏情况具有组合爆炸；本项目没有声称实现 Porcupine 的性能优化、完整 Jepsen 格式或多键事务验证。反例缩减保持同一初始状态，会改变记录上下文，因此不是唯一根因证明；`one_minimal` 也不是全局最少操作数。后续重点是更强的剪枝、独立键分解、更多实测适配器和外部检查器差分验证。
+搜索最坏情况具有组合爆炸，独立键分解不能解决单键上的所有困难历史；本项目没有声称达到 Porcupine 的性能、支持完整 Jepsen 格式或多键事务验证。反例缩减保持同一初始状态，会改变记录上下文，因此不是唯一根因证明；`one_minimal` 也不是全局最少操作数。后续重点是更强的剪枝、保留上下文的缩减、更多实测适配器和外部检查器差分验证。
+
+运行 `npm run benchmark:partition` 可对照两种实现。本地一个 15 条记录的多键违规样例中，搜索节点从 12,717 降至 17；这不是对所有输入的性能保证。[完整基准与限制](docs/PARTITION.md)。
 
 ## 来源与许可证
 

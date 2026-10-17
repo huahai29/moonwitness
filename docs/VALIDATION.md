@@ -10,15 +10,16 @@ Playwright. CI uses Chromium on Linux and reports its own outcome.
 | Check | Observed result |
 |---|---|
 | `moon check --deny-warn --target all` | Passed (including native type checking) |
-| `moon test --target wasm` | 27 passed |
-| `moon test --target wasm-gc` | 27 passed |
-| `moon test --target js` | 27 passed |
-| Node integration tests | 8 passed |
-| CLI sample acceptance | 14 passed; see SAMPLES.md |
+| `moon test --target wasm` | 31 passed |
+| `moon test --target wasm-gc` | 31 passed |
+| `moon test --target js` | 31 passed |
+| Node integration tests | 17 passed (Node 24, including real SQLite file tests) |
+| CLI sample acceptance | 18 passed; see SAMPLES.md |
 | Independent permutation oracle | 1,500 histories, zero mismatches |
 | Oracle classifications | 516 linearizable, 984 violations |
 | Oracle reduction checks | 139 reduced histories independently rechecked |
-| Browser E2E | 7 passed, desktop/mobile/offline/injection cases |
+| Partition differential | 400 histories; monolithic verdicts and merged witnesses checked |
+| Browser E2E | 9 passed, including SQLite capture fixtures and multi-key strategy |
 
 The oracle enumerates complete permutations independently of the production
 search, with no predecessor pruning or production model imports. It checks all
@@ -61,3 +62,19 @@ not a throughput guarantee. Reproduce with `node scripts/benchmark.mjs`.
 Not yet validated: universal correctness proofs, external checker differential
 tests, large production database captures, pending/uncertain operation semantics,
 and native execution tests. Native is type-checked; executable hosts target JS.
+
+## v0.2 additions
+
+Real file-backed SQLite 3.53.1 was exercised through Node.js v24.18.0. Two
+connections observed the same initialized counter. The intentionally broken
+application increment used separate SELECT/UPDATE statements; two calls returned
+1 and the persisted final value was 1. Atomic UPDATE RETURNING returned 1/2 and
+persisted 2. Tests closed and reopened the files, checked values independently,
+and verified the adapter refuses existing database paths. No claim of a SQLite
+engine defect or production-system bug discovery is made.
+
+Partition tests cover shared total budget, full-history validation before split,
+cross-key real-time merge, empty global prefix on partition failure, and complete
+state replay. See PARTITION.md for before/after benchmarks and SQLITE.md for
+reproduction. The original benchmark table above records the v0.1 sample; the new
+partition comparison is recorded separately.

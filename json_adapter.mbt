@@ -116,6 +116,26 @@ pub fn parse_history(text : String) -> Result[History, String] {
 /// Shared JSON boundary for the browser and CLI. Budgets are capped so an
 /// untrusted input cannot request unbounded work in a browser worker.
 pub fn analyze(text : String, max_nodes : Int32, max_checks : Int32) -> String {
+  analyze_configured(text, max_nodes, max_checks, true)
+}
+
+///|
+/// Reference mode for reproducible optimized/unpartitioned comparisons.
+pub fn analyze_baseline(
+  text : String,
+  max_nodes : Int32,
+  max_checks : Int32,
+) -> String {
+  analyze_configured(text, max_nodes, max_checks, false)
+}
+
+///|
+fn analyze_configured(
+  text : String,
+  max_nodes : Int32,
+  max_checks : Int32,
+  partition_keys : Bool,
+) -> String {
   if max_nodes < 1 || max_nodes > 1000000 || max_checks < 0 || max_checks > 1000 {
     return Json({
       "verdict": "invalid",
@@ -126,9 +146,18 @@ pub fn analyze(text : String, max_nodes : Int32, max_checks : Int32) -> String {
     Err(message) =>
       Json({ "verdict": "invalid", "message": message }).stringify()
     Ok(history) => {
-      let result = check(history, max_nodes~)
+      let keys : Array[String] = []
+      for op in history.operations {
+        if !keys.contains(op.key) {
+          keys.push(op.key)
+        }
+      }
+      let partitioned = partition_keys &&
+        history.model == "kv" &&
+        keys.length() > 1
+      let result = check(history, max_nodes~, partition_keys~)
       let reduction : Json = if max_checks > 0 && result.verdict == Violation {
-        let reduced = reduce(history, max_nodes~, max_checks~)
+        let reduced = reduce(history, max_nodes~, max_checks~, partition_keys~)
         {
           "history": Json(reduced.history),
           "result": reduced.result.to_json(),
@@ -146,6 +175,18 @@ pub fn analyze(text : String, max_nodes : Int32, max_checks : Int32) -> String {
         "history": Json(history),
         "reduction": reduction,
         "replay": replay(history, result),
+        "strategy": if partitioned {
+          "independent_keys"
+        } else {
+          "monolithic"
+        },
+        "partitions": if partitioned {
+          keys.length()
+        } else if history.operations.is_empty() {
+          0
+        } else {
+          1
+        },
       }
       response.stringify()
     }

@@ -71,3 +71,25 @@ test('hostile operation IDs remain text in online and offline reports', async ({
   expect(await page.evaluate(() => window.pwned)).toBeUndefined();
   await expect(page.locator('img')).toHaveCount(0);
 });
+
+test('SQLite browser fixtures match file captures and show corrected behavior', async ({ page }) => {
+  await page.goto('/');
+  for (const [button, fixture, verdict] of [
+    ['sqliteBroken', 'sqlite-broken', '发现违规'], ['sqliteAtomic', 'sqlite-atomic', '通过'],
+  ]) {
+    await page.locator(`[data-example="${button}"]`).click();
+    const expected = JSON.parse(await readFile(new URL(`../../examples/${fixture}.json`, import.meta.url), 'utf8'));
+    expect(JSON.parse(await page.locator('#source').inputValue())).toEqual(expected);
+    await expect(page.locator('#capture-note')).toContainText('不现场运行数据库');
+    await page.locator('#run').click(); await expect(page.locator('#badge')).toHaveText(verdict);
+  }
+});
+
+test('multi-key example exposes shared-budget partition strategy and valid reduced replay', async ({ page }) => {
+  await page.goto('/'); await page.locator('[data-example="kv"]').click(); await page.locator('#run').click();
+  await expect(page.locator('#badge')).toHaveText('发现违规');
+  await expect(page.locator('#explanation')).toContainText('5 个分区共享同一搜索预算');
+  await expect(page.locator('#frontier')).not.toContainText('搜索预算已耗尽');
+  await page.locator('#reduced').click(); await expect(page.locator('.timeline-row')).toHaveCount(1);
+  await expect(page.locator('#frontier')).toContainText('返回值不符合');
+});

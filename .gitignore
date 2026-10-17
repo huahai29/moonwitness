@@ -6,6 +6,7 @@
 /test-results/
 /playwright-report/
 /sample-results/
+/sqlite-evidence/
 /moon/_build/
 /moon/target/
 /moon/.mooncakes/

@@ -5,13 +5,14 @@ import { pathToFileURL } from 'node:url';
 import { standaloneReport } from './scripts/report.mjs';
 
 export async function main(args) {
-  const usage = 'Usage: node cli.mjs check <history.json|-> [--reduce] [--max-nodes N] [--max-checks N] [--json] [--out report.json] [--html report.html]\nExit: 0 linearizable, 1 violation, 2 unknown, 3 invalid/input error.';
+  const usage = 'Usage: node cli.mjs check <history.json|-> [--reduce] [--no-partition] [--max-nodes N] [--max-checks N] [--json] [--out report.json] [--html report.html]\nExit: 0 linearizable, 1 violation, 2 unknown, 3 invalid/input error.';
   if (!args.length || args.includes('--help')) { console.log(usage); return 0; }
   if (args[0] !== 'check' || !args[1] || args[1].startsWith('--')) throw new Error(usage);
   const options = { nodes: 100000, checks: 1000, reduce: false, json: false };
   for (let i = 2; i < args.length; i++) {
     const flag = args[i];
     if (flag === '--reduce') options.reduce = true;
+    else if (flag === '--no-partition') options.baseline = true;
     else if (flag === '--json') options.json = true;
     else if (['--max-nodes', '--max-checks', '--out', '--html'].includes(flag)) {
       const value = args[++i];
@@ -47,7 +48,7 @@ export async function main(args) {
     source = await readFile(args[1], 'utf8');
   }
   let analyze;
-  try { ({ analyze } = await import('./dist/engine.mjs')); }
+  try { const engine = await import('./dist/engine.mjs'); analyze = options.baseline ? engine.analyze_baseline : engine.analyze; }
   catch (error) { throw new Error(`Cannot load engine. Run npm run build first. ${error.message}`); }
   const result = JSON.parse(analyze(source.replace(/^\uFEFF/, ''), options.nodes, options.reduce ? options.checks : 0));
   const json = JSON.stringify(result, null, 2) + '\n';
@@ -56,6 +57,7 @@ export async function main(args) {
   if (options.json) process.stdout.write(json);
   else {
     console.log(`${result.verdict.toUpperCase()}: ${result.message}`);
+    if (result.strategy) console.log(`Strategy: ${result.strategy}; partitions=${result.partitions}; search budget is shared.`);
     if (result.result) console.log(`Explored ${result.result.explored} search nodes; ${result.result.order.length} operations in witness/prefix.`);
     if (result.reduction) console.log(`Reduced ${result.history.operations.length} -> ${result.reduction.history.operations.length} operations; one-minimal=${result.reduction.one_minimal}; ${result.reduction.checks} checks.`);
     if (options.html) console.log(`Offline replay: ${resolve(options.html)}`);

@@ -1,0 +1,32 @@
+{
+  "model": "counter",
+  "initial": 0,
+  "operations": [
+    {
+      "id": "alice-add",
+      "client": "alice",
+      "kind": "add",
+      "value": 1,
+      "start": 0,
+      "end": 2,
+      "output": 1
+    },
+    {
+      "id": "bob-add",
+      "client": "bob",
+      "kind": "add",
+      "value": 1,
+      "start": 1,
+      "end": 3,
+      "output": 1
+    },
+    {
+      "id": "final-read",
+      "client": "observer",
+      "kind": "read",
+      "start": 4,
+      "end": 5,
+      "output": 1
+    }
+  ]
+}

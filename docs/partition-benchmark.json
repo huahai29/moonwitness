@@ -1,0 +1,54 @@
+{
+  "runtime": "v24.18.0",
+  "platform": "win32",
+  "samples": 5,
+  "maxNodes": 100000,
+  "reduction": false,
+  "results": [
+    {
+      "keys": 3,
+      "operations": 9,
+      "scenario": "impossible final-key read",
+      "baseline": {
+        "verdict": "violation",
+        "nodes": 313,
+        "medianMs": 1.48
+      },
+      "partitioned": {
+        "verdict": "violation",
+        "nodes": 11,
+        "medianMs": 0.357
+      }
+    },
+    {
+      "keys": 5,
+      "operations": 15,
+      "scenario": "impossible final-key read",
+      "baseline": {
+        "verdict": "violation",
+        "nodes": 12717,
+        "medianMs": 21.122
+      },
+      "partitioned": {
+        "verdict": "violation",
+        "nodes": 17,
+        "medianMs": 0.254
+      }
+    },
+    {
+      "keys": 20,
+      "operations": 60,
+      "scenario": "valid independent writes and reads",
+      "baseline": {
+        "verdict": "linearizable",
+        "nodes": 60,
+        "medianMs": 2.364
+      },
+      "partitioned": {
+        "verdict": "linearizable",
+        "nodes": 60,
+        "medianMs": 1.371
+      }
+    }
+  ]
+}

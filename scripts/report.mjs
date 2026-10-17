@@ -6,9 +6,16 @@ export async function standaloneReport(source, result) {
     readFile(new URL('../web/ui.mjs', import.meta.url), 'utf8'),
     readFile(new URL('../dist/engine.mjs', import.meta.url), 'utf8'),
   ]);
-  const exportPattern = /export\s*\{\s*([A-Za-z_$][\w$]*)\s+as\s+analyze\s*\}\s*;?/;
-  if (!exportPattern.test(engine)) throw new Error('Unexpected MoonBit JS export format; rebuild and verify the report adapter.');
-  const workerEngine = engine.replace(exportPattern, 'const analyze = $1;');
+  const exportPattern = /export\s*\{([^}]+)\}\s*;?/;
+  const exported = engine.match(exportPattern);
+  if (!exported) throw new Error('Unexpected MoonBit JS export format; rebuild and verify the report adapter.');
+  const aliases = exported[1].split(',').map(entry => {
+    const match = entry.trim().match(/^([A-Za-z_$][\w$]*)\s+as\s+(analyze|analyze_baseline)$/);
+    if (!match) throw new Error('Unexpected MoonBit JS export entry');
+    return { internal: match[1], name: match[2] };
+  });
+  if (!aliases.some(entry => entry.name === 'analyze')) throw new Error('Missing MoonBit analyze export');
+  const workerEngine = engine.replace(exportPattern, aliases.map(entry => `const ${entry.name} = ${entry.internal};`).join('\n'));
   return `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MoonWitness · Offline replay</title><style>${css}</style><body><main id="app"></main><script type="module">
 ${ui.replace('export function mount', 'function mount')}
 const engineSource=${safe(workerEngine)};

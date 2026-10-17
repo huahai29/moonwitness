@@ -1,10 +1,10 @@
 export function mount({ workerUrl, workerType = 'module', source = '', result = null, offline = false }) {
   const app = document.getElementById('app');
   app.innerHTML = `
-    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.1</small></a><span class="tag">MOONBIT ENGINE · LOCAL FIRST</span></header>
+    <header><a class="brand" href="#"><span class="mark">◒</span> MoonWitness <small>0.2</small></a><span class="tag">MOONBIT ENGINE · LOCAL FIRST</span></header>
     <section class="hero"><p class="eyebrow">CONCURRENCY / EVIDENCE / REPLAY</p><h1>并发之下，<br>让错误<span>留下证据。</span></h1><p class="intro">导入操作历史，检查线性一致性。把复杂记录缩减成可以解释的反例，逐步回放状态变化。</p><div class="hero-note"><i></i> 计算在本地 Worker 中完成 · 无上传 · 无外部 API</div></section>
     <section class="workspace"><div class="editor panel"><div class="panel-head"><h2><span>01</span> 操作历史</h2><label class="file-button">导入 JSON<input id="file" type="file" accept=".json,application/json"></label></div>
-    <div class="scenarios" aria-label="示例场景"><button data-example="cas">CAS 双成功</button><button data-example="legal">合法并发</button><button data-example="counter">计数丢失</button><button data-example="stale">过期读取</button><button data-example="noise">64 条记录</button></div>
+    <div class="scenarios" aria-label="示例场景"><button data-example="cas">CAS 双成功</button><button data-example="legal">合法并发</button><button data-example="counter">计数丢失</button><button data-example="stale">过期读取</button><button data-example="noise">64 条记录</button><button data-example="sqliteBroken">SQLite 丢失更新</button><button data-example="sqliteAtomic">SQLite 原子更新</button><button data-example="kv">KV 多键</button></div><p id="capture-note" class="fineprint"></p>
     <label for="source" class="sr-only">操作历史 JSON</label><textarea id="source" spellcheck="false"></textarea>
     <div class="settings"><label>搜索节点预算<input id="nodes" type="number" min="1" max="1000000" value="100000"></label><label>缩减检查次数<input id="checks" type="number" min="0" max="1000" value="300"></label></div>
     <div class="actions"><button id="run" class="primary">检查并缩减 <span>↗</span></button><button id="stop" disabled>停止</button><span id="running" role="status"></span></div>
@@ -22,6 +22,9 @@ export function mount({ workerUrl, workerType = 'module', source = '', result = 
     stale: { model: 'kv', initial: 0, operations: [operation('put', 'alice', 0, 2, 'put', null, { key: 'balance', value: 100 }), operation('get', 'bob', 3, 5, 'get', 0, { key: 'balance' })] },
   };
   examples.noise = { model: 'register', initial: 0, operations: [...Array.from({ length: 62 }, (_, i) => operation(`noise-${i}`, 'observer', i * 2, i * 2 + 1, 'read', 0)), operation('alice-cas', 'alice', 126, 134, 'cas', true, { expected: 0, value: 1 }), operation('bob-cas', 'bob', 127, 133, 'cas', true, { expected: 0, value: 2 })] };
+  examples.sqliteBroken = { model: 'counter', initial: 0, operations: [operation('alice-add', 'alice', 0, 2, 'add', 1, { value: 1 }), operation('bob-add', 'bob', 1, 3, 'add', 1, { value: 1 }), operation('final-read', 'observer', 4, 5, 'read', 1)] };
+  examples.sqliteAtomic = { model: 'counter', initial: 0, operations: [operation('alice-add', 'alice', 0, 2, 'add', 1, { value: 1 }), operation('bob-add', 'bob', 1, 3, 'add', 2, { value: 1 }), operation('final-read', 'observer', 4, 5, 'read', 2)] };
+  examples.kv = { model: 'kv', initial: 0, operations: [...Array.from({ length: 10 }, (_, i) => operation(`write-${i}`, `writer-${i}`, 0, 10, 'put', null, { key: `key-${Math.floor(i / 2)}`, value: i % 2 + 1 })), ...Array.from({ length: 5 }, (_, i) => operation(`read-${i}`, `reader-${i}`, 11, 12, 'get', i === 4 ? 999 : 2, { key: `key-${i}` }))] };
   let current = result, useReduced = false, stepIndex = 0, timer = null, worker = null, started = 0;
   $('source').value = source || JSON.stringify(examples.cas, null, 2);
   const labels = { linearizable: '通过', violation: '发现违规', unknown: '未判定', invalid: '输入无效' };
@@ -55,6 +58,7 @@ export function mount({ workerUrl, workerType = 'module', source = '', result = 
       const card = text('div', '', 'stat'); card.append(text('strong', String(value)), text('span', name)); $('stats').append(card);
     }
     $('explanation').replaceChildren();
+    if (current.strategy === 'independent_keys') $('explanation').append(text('p', `使用独立键分解：${current.partitions} 个分区共享同一搜索预算。通过时合并全局顺序；违规时可切换缩减记录查看局部证据。`, 'fineprint'));
     if (reduced) $('explanation').append(text('p', reduced.one_minimal ? `已做 ${reduced.checks} 次检查，确认单步删除最小：再删除任何一条操作都不再违规。` : `已做 ${reduced.checks} 次检查；预算内未确认单步删除最小。`, 'callout'));
     if (current.verdict === 'violation') $('explanation').append(text('p', '下方回放展示某条合法搜索前缀及其边界，不是唯一根因。缩减后的记录会按原初始值重新检查。', 'fineprint'));
     $('download').disabled = false; $('history-download').disabled = !reduced; $('reduced').disabled = !reduced;
@@ -92,7 +96,7 @@ export function mount({ workerUrl, workerType = 'module', source = '', result = 
     $('frontier').replaceChildren();
     if (stepIndex === steps.length && data?.replay?.frontier.length) {
       $('frontier').append(text('h3', '当前前缀的未执行操作'));
-      for (const item of data.replay.frontier) $('frontier').append(text('p', `${item.id} · ${item.status === 'model_rejected' ? '返回值不符合此时的模型状态' : item.status === 'waiting_for_predecessor' ? `等待 ${item.waiting_for.join(', ')}` : '可继续；搜索预算已耗尽'}`, item.status === 'model_rejected' ? 'rejection' : 'muted'));
+      for (const item of data.replay.frontier) $('frontier').append(text('p', `${item.id} · ${item.status === 'model_rejected' ? '返回值不符合此时的模型状态' : item.status === 'waiting_for_predecessor' ? `等待 ${item.waiting_for.join(', ')}` : '在此前缀中可执行；请结合完整判定与缩减记录'}`, item.status === 'model_rejected' ? 'rejection' : 'muted'));
     }
   }
   function cancel(message = '已停止，当前计算未得出结论。') {
@@ -115,12 +119,12 @@ export function mount({ workerUrl, workerType = 'module', source = '', result = 
     } catch (error) { cancel(`无法启动计算：${error.message}`); }
   };
   $('stop').onclick = () => cancel();
-  $('source').oninput = () => { cancel(''); resetPresentation(); };
-  document.querySelectorAll('[data-example]').forEach(button => { button.onclick = () => { cancel(''); resetPresentation(); $('source').value = JSON.stringify(examples[button.dataset.example], null, 2); }; });
+  $('source').oninput = () => { cancel(''); resetPresentation(); $('capture-note').textContent = ''; };
+  document.querySelectorAll('[data-example]').forEach(button => { button.onclick = () => { cancel(''); resetPresentation(); $('source').value = JSON.stringify(examples[button.dataset.example], null, 2); $('capture-note').textContent = button.dataset.example.startsWith('sqlite') ? 'SQLite 文件实测记录：浏览器只回放历史，不现场运行数据库。丢失更新来自应用层分开读写，不是 SQLite 本身的缺陷。' : ''; }; });
   $('file').onchange = async event => {
     const file = event.target.files[0]; if (!file) return;
     if (file.size > 8000000) { $('running').textContent = '文件过大。'; return; }
-    cancel(''); resetPresentation(); $('source').value = (await file.text()).replace(/^\uFEFF/, ''); event.target.value = '';
+    cancel(''); resetPresentation(); $('capture-note').textContent = ''; $('source').value = (await file.text()).replace(/^\uFEFF/, ''); event.target.value = '';
   };
   $('download').onclick = () => download(current, 'moonwitness-report.json');
   $('history-download').onclick = () => download(current.reduction.history, 'moonwitness-reduced.json');

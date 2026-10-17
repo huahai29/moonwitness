@@ -98,7 +98,11 @@ pub fn validate_history(history : History) -> String? {
 
 ///|
 /// Single register/counter or an independent-key KV store. Unseen keys use initial.
-pub fn check(history : History, max_nodes~ : Int32 = 100000) -> CheckResult {
+pub fn check(
+  history : History,
+  max_nodes~ : Int32 = 100000,
+  partition_keys~ : Bool = true,
+) -> CheckResult {
   if validate_history(history) is Some(message) {
     return { verdict: Invalid, order: [], explored: 0, message, }
   }
@@ -107,6 +111,9 @@ pub fn check(history : History, max_nodes~ : Int32 = 100000) -> CheckResult {
     if !keys.contains(op.key) {
       keys.push(op.key)
     }
+  }
+  if partition_keys && history.model == "kv" && keys.length() > 1 {
+    return check_partitioned(history, keys, max_nodes)
   }
   let model : Model[Array[(String, Int32)]] = {
     initial: keys.map(key => (key, history.initial)),

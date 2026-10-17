@@ -11,6 +11,9 @@
   Versions are resolved in package-lock.json. Browser binaries are not bundled.
 - The browser UI uses system fonts. No remote font, icon pack or image asset is
   required; the small mark and timeline use text/CSS.
+- The optional SQLite adapter uses Node.js's built-in `node:sqlite` API. Node.js
+  and its embedded SQLite are external runtime prerequisites; their source and
+  binaries are not bundled here. The adapter code is newly implemented.
 - The search, models, reducer, recorder, hosts and UI are newly implemented for
   this project with AI assistance. The user remains responsible for reviewing,
   understanding and maintaining the submitted project.

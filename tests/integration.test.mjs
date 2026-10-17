@@ -16,6 +16,13 @@ test('CLI communicates all four verdicts with distinct exit codes', () => {
   assert.equal(cli(['check', 'examples/legal-overlap.json', '--max-nodes', '1']).status, 2);
   assert.equal(cli(['check', '-'], { input: '{}' }).status, 3);
 });
+
+test('CLI baseline flag preserves monolithic comparison mode', () => {
+  const optimized = JSON.parse(cli(['check', 'examples/stale-read.json', '--json']).stdout);
+  const baseline = JSON.parse(cli(['check', 'examples/stale-read.json', '--json', '--no-partition']).stdout);
+  assert.equal(optimized.verdict, baseline.verdict);
+  assert.equal(baseline.strategy, 'monolithic');
+});
 test('CLI JSON remains parseable on failure and accepts stdin', async () => {
   const source = await readFile(join(root, 'examples/cas-race.json'), 'utf8');
   const run = cli(['check', '-', '--json', '--reduce'], { input: source });

@@ -4,6 +4,8 @@ package "huahai29/moonwitness/bridge"
 // Values
 pub fn analyze(String, Int, Int) -> String
 
+pub fn analyze_baseline(String, Int, Int) -> String
+
 // Errors
 
 // Types and methods

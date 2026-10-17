@@ -14,9 +14,10 @@ pub fn reduce(
   history : History,
   max_nodes~ : Int32 = 100000,
   max_checks~ : Int32 = 1000,
+  partition_keys~ : Bool = true,
 ) -> Reduction {
   let mut current = history
-  let mut result = check(history, max_nodes~)
+  let mut result = check(history, max_nodes~, partition_keys~)
   let mut checks = 1
   if result.verdict != Violation || max_checks < 1 {
     return { history: current, result, checks, one_minimal: false, }
@@ -35,7 +36,7 @@ pub fn reduce(
       }
     }
     let candidate = { ..current, operations, }
-    let checked = check(candidate, max_nodes~)
+    let checked = check(candidate, max_nodes~, partition_keys~)
     checks += 1
     if checked.verdict == Violation {
       current = candidate

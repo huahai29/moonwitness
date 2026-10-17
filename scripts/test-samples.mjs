@@ -19,6 +19,8 @@ for (const [file, title, expected] of [
   ['cas-race', '两个 CAS 都声称成功：违规', 'violation'],
   ['stale-read', '写入结束后读取旧值：违规', 'violation'],
   ['lost-update', '两次加一都返回 1：违规', 'violation'],
+  ['sqlite-broken', 'SQLite 应用读改写丢失更新：违规', 'violation'],
+  ['sqlite-atomic', 'SQLite 原子 SQL 采集记录：通过', 'linearizable'],
 ]) samples.push({ name: file, title, expected, source: await readFile(join(root, 'examples', `${file}.json`), 'utf8') });
 samples.push(
   { name: 'legal-cas', title: 'CAS 一次成功一次失败：合法', expected: 'linearizable', data: history([op('a', 0, 5, 'cas', true, { expected: 0, value: 1 }), op('b', 1, 4, 'cas', false, { expected: 0, value: 2 })]) },
@@ -32,6 +34,14 @@ samples.push(
   { name: 'captured-broken', title: '实际执行带竞态的 CAS：违规', expected: 'violation', reduced: 2, data: await capture('broken') },
   { name: 'captured-correct', title: '实际执行修正后的 CAS：通过', expected: 'linearizable', data: await capture('correct') },
 );
+const kv = history([
+  ...Array.from({ length: 10 }, (_, i) => op(`w${i}`, 0, 10, 'put', null, { key: `k${Math.floor(i / 2)}`, value: i % 2 + 1 })),
+  ...Array.from({ length: 5 }, (_, i) => op(`r${i}`, 11, 12, 'get', i === 4 ? 999 : 2, { key: `k${i}` })),
+], 'kv');
+samples.push(
+  { name: 'kv-partitioned', title: '多键违规记录，分解检查', expected: 'violation', maxExplored: 20, data: kv },
+  { name: 'kv-baseline', title: '相同多键记录，单体对照', expected: 'violation', args: ['--no-partition'], data: kv },
+);
 const rows = [];
 for (const sample of samples) {
   const input = join(destination, `${sample.name}-input.json`);
@@ -41,6 +51,7 @@ for (const sample of samples) {
   if (run.error) throw run.error;
   const actual = JSON.parse(run.stdout);
   assert.equal(actual.verdict, sample.expected, sample.name);
+  if (sample.maxExplored) assert.ok(actual.result.explored <= sample.maxExplored, `${sample.name}: node regression`);
   assert.equal(run.status, { linearizable: 0, violation: 1, unknown: 2, invalid: 3 }[sample.expected], `${sample.name}: exit code`);
   if (sample.reduced) {
     assert.equal(actual.reduction.history.operations.length, sample.reduced, sample.name);

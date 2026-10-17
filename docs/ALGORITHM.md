@@ -38,8 +38,35 @@ fingerprints. An incorrect custom model or fingerprint can invalidate results.
 Real-time predecessor construction is O(n²). The search is exponential in the
 worst case and uses memory proportional to explored cached states plus stack
 depth. The implementation limits histories to 256 operations and host budgets
-to at most 1,000,000 search visits per check. It does not implement partitioned
-search, parallelism, or claim Porcupine-equivalent performance.
+to at most 1,000,000 search visits per check. Independent-key KV projections use
+the partition strategy below. There is no parallelism or claim of
+Porcupine-equivalent performance.
+
+## Independent-key partitioning
+
+Only the built-in KV model is decomposed, because its get/put/CAS operations
+touch exactly one key and its sequential specification is a product of independent
+registers. Generic user models are not automatically assumed decomposable.
+Whole-history validation happens BEFORE projection, including duplicate IDs and
+cross-key same-client overlaps. The 256-operation cap is global.
+
+Each key projection runs the same monolithic checker. Node visits are deducted
+from one global budget; exhaustion yields unknown, never a passing result. A
+definite violation in a projection establishes a global violation. On failure or
+unknown, the implementation exports no per-key path as if it were a global prefix.
+
+If every projection passes, the checker topologically merges all per-key witness
+orders with ALL original cross-key real-time edges. Only a complete merged order
+is returned as linearizable. An unexpected merge cycle conservatively returns
+unknown rather than inventing a witness. Merge/validation work is O(n²) and not
+counted as search visits. The budget is not a wall-clock deadline.
+
+The optimization uses linearizability's locality over independent objects; it
+does not apply to multi-key transactions, shared invariants or coupled models.
+Tie breaking remains deterministic. Changing strategy can change the chosen
+valid witness or whether a finite budget is exhausted. `--no-partition`, the
+MoonBit `partition_keys=false` parameter and the `analyze_baseline` JS export
+retain the same monolithic implementation for controlled comparisons.
 
 ## Built-in model semantics
 

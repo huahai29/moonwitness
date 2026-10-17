@@ -316,3 +316,63 @@ test "JSON boundary returns unknown and invalid explicitly" {
   let h = hist([op("a", 0, 1, "read", Json(0)), op("b", 2, 3, "read", Json(0))])
   assert_true(analyze(Json(h).stringify(), 1, 0).contains("unknown"))
 }
+
+///|
+test "KV partitioning respects one shared budget" {
+  let h = hist(
+    [
+      op("x", 0, 1, "get", Json(0), key="x"),
+      op("y", 0, 1, "get", Json(0), key="y"),
+    ],
+    model="kv",
+  )
+  assert_true(check(h, max_nodes=1).verdict == Unknown)
+  assert_eq(check(h, max_nodes=1).explored, 1)
+  assert_true(check(h, max_nodes=2).verdict == Linearizable)
+}
+
+///|
+test "KV merged witness preserves cross-key real-time edges" {
+  let h = hist(
+    [
+      op("read-x", 0, 2, "get", Json(0), key="x"),
+      op("write-y", 2, 3, "put", Json::null(), value=7, key="y"),
+      op("write-x", 1, 5, "put", Json::null(), value=9, key="x"),
+      op("read-y", 5, 6, "get", Json(7), key="y"),
+    ],
+    model="kv",
+  )
+  let checked = check(h)
+  assert_true(checked.verdict == Linearizable)
+  assert_eq(checked.order.length(), 4)
+  assert_eq(checked.order[0], "read-x")
+  assert_eq(checked.order[1], "write-y")
+  assert_eq(checked.order[3], "read-y")
+  assert_true(checked.verdict == check(h, partition_keys=false).verdict)
+}
+
+///|
+test "KV partition violation does not export a global prefix from one key" {
+  let h = hist(
+    [
+      op("x", 0, 1, "get", Json(0), key="x"),
+      op("y", 0, 1, "get", Json(1), key="y"),
+    ],
+    model="kv",
+  )
+  let checked = check(h)
+  assert_true(checked.verdict == Violation)
+  assert_eq(checked.order.length(), 0)
+}
+
+///|
+test "KV partition preserves whole-history validation" {
+  let h = hist(
+    [
+      op("x", 0, 3, "get", Json(0), key="x", client="same"),
+      op("y", 1, 2, "get", Json(0), key="y", client="same"),
+    ],
+    model="kv",
+  )
+  assert_true(check(h).verdict == Invalid)
+}

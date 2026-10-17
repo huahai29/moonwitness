@@ -6,12 +6,13 @@ export class Recorder {
   #operations = [];
   constructor(model = 'register', initial = 0) { this.model = model; this.initial = initial; }
   async record(description, action) {
+    const invocation = { ...description };
     const start = this.#tick++;
     this.#pending++;
     try {
       const output = await action();
       const end = this.#tick++;
-      this.#operations.push({ ...description, start, end, output });
+      this.#operations.push({ ...invocation, start, end, output });
       return output;
     } catch (error) {
       // A rejected call can still have taken effect. Do not silently omit it.

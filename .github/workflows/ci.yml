@@ -43,6 +43,10 @@ jobs:
           npm run test:integration
           npm run test:oracle
           npm run test:samples -- sample-results
+      - name: SQLite evidence and partition benchmark
+        run: |
+          node adapters/sqlite-demo.mjs sample-results/sqlite
+          node scripts/partition-benchmark.mjs > sample-results/partition-benchmark.json
       - name: Browser tests
         run: |
           npm ci

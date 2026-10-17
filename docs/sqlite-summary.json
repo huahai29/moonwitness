@@ -1,0 +1,18 @@
+{
+  "cases": [
+    {
+      "mode": "broken",
+      "sqliteVersion": "3.53.1",
+      "finalValue": 1,
+      "verdict": "violation",
+      "operations": 3
+    },
+    {
+      "mode": "atomic",
+      "sqliteVersion": "3.53.1",
+      "finalValue": 2,
+      "verdict": "linearizable",
+      "operations": 3
+    }
+  ]
+}
